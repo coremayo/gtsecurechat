@@ -1,12 +1,21 @@
 package edu.gatech.cc.CS4237.gtsecurechat.GUI;
 
+import java.awt.BorderLayout;
+import java.awt.Container;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
-import javax.swing.JPanel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTextArea;
+import javax.swing.KeyStroke;
 
 
 /**
@@ -18,11 +27,13 @@ public class MainChatFrame extends AbstractFrame {
 
 	private static final long serialVersionUID = 4344546169197711305L;
 	
-	static final Integer FRAME_HEIGHT = 500;
 	static final Integer FRAME_WIDTH = 300;
+	static final Integer FRAME_HEIGHT = 400;
 	static final String FRAME_TITLE = "GTSecureChat";
 	
-	private JTextArea conversationTextArea, newMessageTextArea;
+	private JTextArea conversationArea, messageArea;
+	
+	private boolean justSentMessage = false;
 	
 	public MainChatFrame(final GTSecureChat program) {
 		super(program);
@@ -30,25 +41,97 @@ public class MainChatFrame extends AbstractFrame {
 		setSize(FRAME_WIDTH, FRAME_HEIGHT);
 		addWindowListener(new WindowAdapter() {
 			public void windowClosing(WindowEvent e) {
-				setVisible(false);
-				program.setActiveWindow(program.WELCOME_WINDOW);
+				System.exit(0); // though we might want to do something other 
+			}                   // than exit when the user clicks the X
+		});
+		Container pane = getContentPane();
+		
+		/* Now the menu bar... File, Edit, Help */
+		JMenuBar menuBar = new JMenuBar();
+		JMenuItem menuItem;
+		pane.add(BorderLayout.NORTH, menuBar);
+
+		JMenu fileMenu = new JMenu("File");
+		fileMenu.setMnemonic(KeyEvent.VK_F);
+		menuItem = new JMenuItem("Exit", KeyEvent.VK_X);
+		menuItem.setAccelerator(
+				KeyStroke.getKeyStroke(KeyEvent.VK_Q, ActionEvent.CTRL_MASK));
+		menuItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				System.exit(0);
 			}
 		});
+		fileMenu.add(menuItem);
+		menuBar.add(fileMenu);
 		
-		JPanel panel = new JPanel();
-		add(panel);
+		JMenu editMenu = new JMenu("Edit");
+		editMenu.setMnemonic(KeyEvent.VK_E);
+		menuBar.add(editMenu);
 		
-		newMessageTextArea = new JTextArea(2, 25);
-		conversationTextArea = new JTextArea("Bob: Hello Alice!", 25, 25);
+		JMenu helpMenu = new JMenu("Help");
+		helpMenu.setMnemonic(KeyEvent.VK_H);
+		menuBar.add(helpMenu);
+		/* End of the menu bar area */
+		
+		conversationArea = new JTextArea("Bob: Hello Alice!", 20, 20);
+		conversationArea.setEditable(false);
+		conversationArea.setLineWrap(true);
+		conversationArea.setWrapStyleWord(true);
+		messageArea = new JTextArea();
+		messageArea.addKeyListener(new AwesomeListener());
+		messageArea.setLineWrap(true);
+		messageArea.setWrapStyleWord(true);
 		
 		JScrollPane conversationScrollPane, newMessageScrollPane;
-		newMessageScrollPane = new JScrollPane(newMessageTextArea);
-		conversationScrollPane = new JScrollPane(conversationTextArea);
+		conversationScrollPane = new JScrollPane(conversationArea);
+		conversationScrollPane.setVerticalScrollBarPolicy(
+				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+		newMessageScrollPane = new JScrollPane(messageArea);
 		
 		JSplitPane splitPane = new JSplitPane(
 				JSplitPane.VERTICAL_SPLIT, 
 				conversationScrollPane, 
 				newMessageScrollPane);
-		panel.add(splitPane);
+		splitPane.setDividerLocation(0.75);
+		pane.add(BorderLayout.CENTER, splitPane);
+	}
+	
+	protected void receiveMessage(String message) {
+		conversationArea.append("\n" + messageArea.getText());
+		conversationArea.setCaretPosition(
+				conversationArea.getText().length());
+	}
+	
+	private class AwesomeListener implements ActionListener, KeyListener {
+
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void keyPressed(KeyEvent e) {
+			if (e.getKeyCode() == KeyEvent.VK_ENTER 
+					&& messageArea.getText().trim().length() > 0) {
+				program.sendMessage(messageArea.getText());
+				justSentMessage = true;
+			}
+		}
+
+		@Override
+		public void keyReleased(KeyEvent e) {
+			if (e.getKeyCode() == KeyEvent.VK_ENTER && justSentMessage) {
+				messageArea.setText(new String());
+				justSentMessage = false;
+			}
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void keyTyped(KeyEvent e) {
+//			if (e == KeyEvent.)
+		}
 	}
 }

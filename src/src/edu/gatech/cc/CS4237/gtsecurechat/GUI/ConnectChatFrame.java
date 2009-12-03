@@ -12,6 +12,7 @@ import java.awt.event.WindowEvent;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 
 public class ConnectChatFrame 
@@ -24,8 +25,9 @@ public class ConnectChatFrame
 	static final int FRAME_HEIGHT = 500;
 	static final String FRAME_TITLE = "Join a Chat";
 	
-	private JLabel nameLabel, hostLabel, portLabel, errorLabel;
+	private JLabel nameLabel, passLabel, hostLabel, portLabel, errorLabel;
 	private JTextField nameField, hostField, portField;
+	private JPasswordField passField;
 	private JButton cancelButton, okayButton;
 
 	public ConnectChatFrame(final GTSecureChat program) {
@@ -67,11 +69,27 @@ public class ConnectChatFrame
 		c.insets = new Insets(5, 5, 5, 5);
 		panel.add(nameField, c);
 		
+		passLabel = new JLabel("Password");
+		c.fill = GridBagConstraints.NONE;
+		c.gridx = 0;
+		c.gridy = 2;
+		c.gridwidth = 0;
+		c.insets = new Insets(5, 5, 5, 5);
+		panel.add(passLabel, c);
+		
+		passField = new JPasswordField();
+		c.fill = GridBagConstraints.HORIZONTAL;
+		c.gridx = 0;
+		c.gridy = 3;
+		c.gridwidth = 3;
+		c.insets = new Insets(5, 5, 5, 5);
+		panel.add(passField, c);
+		
 		hostLabel = new JLabel("Hostname or IP Address");
 		c.fill = GridBagConstraints.NONE;
 		c.anchor = GridBagConstraints.NORTHWEST;
 		c.gridx = 0;
-		c.gridy = 2;
+		c.gridy = 4;
 		c.gridwidth = 0;
 		c.insets = new Insets(5, 5, 5, 5);
 		panel.add(hostLabel, c);
@@ -79,7 +97,7 @@ public class ConnectChatFrame
 		hostField = new JTextField();
 		c.fill = GridBagConstraints.HORIZONTAL;
 		c.gridx = 0;
-		c.gridy = 3;
+		c.gridy = 5;
 		c.gridwidth = 3;
 		c.insets = new Insets(5, 5, 5, 5);
 		panel.add(hostField, c);
@@ -87,7 +105,7 @@ public class ConnectChatFrame
 		portLabel = new JLabel("Port");
 		c.fill = GridBagConstraints.NONE;
 		c.gridx = 0;
-		c.gridy = 4;
+		c.gridy = 6;
 		c.gridwidth = 0;
 		c.insets = new Insets(5, 5, 5, 5);
 		panel.add(portLabel, c);
@@ -95,7 +113,7 @@ public class ConnectChatFrame
 		portField = new JTextField();
 		c.fill = GridBagConstraints.HORIZONTAL;
 		c.gridx = 0;
-		c.gridy = 5;
+		c.gridy = 7;
 		c.gridwidth = 3;
 		c.insets = new Insets(5, 5, 5, 5);
 		panel.add(portField, c);
@@ -104,7 +122,7 @@ public class ConnectChatFrame
 		cancelButton.addActionListener(this);
 		c.fill = GridBagConstraints.HORIZONTAL;
 		c.gridx = 1;
-		c.gridy = 6;
+		c.gridy = 8;
 		c.gridwidth = 1;
 		c.insets = new Insets(5, 5, 5, 5);
 		panel.add(cancelButton, c);
@@ -113,7 +131,7 @@ public class ConnectChatFrame
 		okayButton.addActionListener(this);
 		c.fill = GridBagConstraints.HORIZONTAL;
 		c.gridx = 2;
-		c.gridy = 6;
+		c.gridy = 8;
 		c.gridwidth = 1;
 		c.insets = new Insets(5, 5, 5, 5);
 		panel.add(okayButton, c);
@@ -123,7 +141,7 @@ public class ConnectChatFrame
 		errorLabel.setForeground(Color.RED);
 		c.fill = GridBagConstraints.HORIZONTAL;
 		c.gridx = 0;
-		c.gridy = 7;
+		c.gridy = 9;
 		c.gridwidth = 1;
 		c.insets = new Insets(5, 5, 5, 5);
 		panel.add(errorLabel, c);

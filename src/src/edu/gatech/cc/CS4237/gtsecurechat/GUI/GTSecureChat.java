@@ -23,11 +23,16 @@ public class GTSecureChat {
 	}
 	
 	protected void createNewChat(String name, String port) throws Exception {
-		//TODO create some sockets
+		//TODO create some listening sockets, do diffie-hellman, etc
 	}
 
-	public void joinChat(String name, String host, String port) {
+	protected void joinChat(String name, String host, String port) {
 		// TODO create some sockets
+		
+	}
+
+	protected void sendMessage(String message) {
+		//TODO actually send a message here
 		
 	}
 }
