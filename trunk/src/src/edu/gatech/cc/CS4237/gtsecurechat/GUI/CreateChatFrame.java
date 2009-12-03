@@ -13,6 +13,7 @@ import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 
 public class CreateChatFrame
@@ -25,9 +26,10 @@ public class CreateChatFrame
 	static final int FRAME_HEIGHT = 400;
 	static final String FRAME_TITLE = "Create a New Chat";
 	
-	private JLabel nameLabel, portLabel, errorLabel;
+	private JLabel nameLabel, passLabel, portLabel, errorLabel;
 	private JTextField nameField, portField;
 	private JButton cancelButton, okayButton;
+	JPasswordField passField;
 	
 	public CreateChatFrame(final GTSecureChat program) {
 		super(program);
@@ -54,10 +56,6 @@ public class CreateChatFrame
                         BorderFactory.createTitledBorder("Text Fields"),
                         BorderFactory.createEmptyBorder(5,5,5,5)));
 
-
-		
-		//TODO add chat password field
-		
 		nameLabel = new JLabel("Name");
 		c.fill = GridBagConstraints.NONE;
 		c.anchor = GridBagConstraints.NORTHWEST;
@@ -75,10 +73,26 @@ public class CreateChatFrame
 		c.insets = new Insets(5, 5, 5, 5);
 		panel.add(nameField, c);
 		
-		portLabel = new JLabel("Port");
+		passLabel = new JLabel("Password");
 		c.fill = GridBagConstraints.NONE;
 		c.gridx = 0;
 		c.gridy = 2;
+		c.gridwidth = 0;
+		c.insets = new Insets(5, 5, 5, 5);
+		panel.add(passLabel, c);
+		
+		passField = new JPasswordField();
+		c.fill = GridBagConstraints.HORIZONTAL;
+		c.gridx = 0;
+		c.gridy = 3;
+		c.gridwidth = 3;
+		c.insets = new Insets(5, 5, 5, 5);
+		panel.add(passField, c);
+		
+		portLabel = new JLabel("Port");
+		c.fill = GridBagConstraints.NONE;
+		c.gridx = 0;
+		c.gridy = 4;
 		c.gridwidth = 0;
 		c.insets = new Insets(5, 5, 5, 5);
 		panel.add(portLabel, c);
@@ -86,7 +100,7 @@ public class CreateChatFrame
 		portField = new JTextField();
 		c.fill = GridBagConstraints.HORIZONTAL;
 		c.gridx = 0;
-		c.gridy = 3;
+		c.gridy = 5;
 		c.gridwidth = 3;
 		c.insets = new Insets(5, 5, 5, 5);
 		panel.add(portField, c);
@@ -95,7 +109,7 @@ public class CreateChatFrame
 		cancelButton.addActionListener(this);
 		c.fill = GridBagConstraints.HORIZONTAL;
 		c.gridx = 1;
-		c.gridy = 4;
+		c.gridy = 6;
 		c.gridwidth = 1;
 		c.insets = new Insets(5, 5, 5, 5);
 		panel.add(cancelButton, c);
@@ -104,7 +118,7 @@ public class CreateChatFrame
 		okayButton.addActionListener(this);
 		c.fill = GridBagConstraints.HORIZONTAL;
 		c.gridx = 2;
-		c.gridy = 4;
+		c.gridy = 6;
 		c.gridwidth = 1;
 		c.insets = new Insets(5, 5, 5, 5);
 		panel.add(okayButton, c);
@@ -114,7 +128,7 @@ public class CreateChatFrame
 		errorLabel.setForeground(Color.RED);
 		c.fill = GridBagConstraints.HORIZONTAL;
 		c.gridx = 0;
-		c.gridy = 5;
+		c.gridy = 7;
 		c.gridwidth = 1;
 		c.insets = new Insets(5, 5, 5, 5);
 		panel.add(errorLabel, c);
