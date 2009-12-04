@@ -94,7 +94,7 @@ public class ConnectChatFrame
 		c.insets = new Insets(5, 5, 5, 5);
 		panel.add(hostLabel, c);
 		
-		hostField = new JTextField();
+		hostField = new JTextField("localhost");
 		c.fill = GridBagConstraints.HORIZONTAL;
 		c.gridx = 0;
 		c.gridy = 5;
@@ -110,7 +110,7 @@ public class ConnectChatFrame
 		c.insets = new Insets(5, 5, 5, 5);
 		panel.add(portLabel, c);
 		
-		portField = new JTextField();
+		portField = new JTextField("8080");
 		c.fill = GridBagConstraints.HORIZONTAL;
 		c.gridx = 0;
 		c.gridy = 7;
@@ -159,9 +159,12 @@ public class ConnectChatFrame
 		} else if (e.getSource() == okayButton) {
 		// User clicked OK
 			try {
-				program.joinChat(nameField.getText(), hostField.getText(), portField.getText());
+				program.joinChat(nameField.getText(), 
+						         hostField.getText(), 
+						         portField.getText(),
+						         passField.getPassword());
 				setVisible(false);
-				program.setActiveWindow(program.MAIN_WINDOW);
+				program.setActiveWindow(program.CHAT_WINDOW);
 			} catch (Exception ex) {
 				errorLabel.setVisible(true);
 				errorLabel.setText(ex.getMessage());

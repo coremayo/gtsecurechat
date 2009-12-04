@@ -97,7 +97,7 @@ public class CreateChatFrame
 		c.insets = new Insets(5, 5, 5, 5);
 		panel.add(portLabel, c);
 		
-		portField = new JTextField();
+		portField = new JTextField("8080");
 		c.fill = GridBagConstraints.HORIZONTAL;
 		c.gridx = 0;
 		c.gridy = 5;
@@ -145,9 +145,13 @@ public class CreateChatFrame
 		} else if (e.getSource() == okayButton) {
 		// User clicked OK
 			try {
-				program.createNewChat(nameField.getText(), portField.getText());
+				System.out.println("user clicked ok");
+				program.createNewChat(nameField.getText(), 
+						              portField.getText(), 
+						              passField.getPassword());
+				System.out.println("done with network crap");
 				setVisible(false);
-				program.setActiveWindow(program.MAIN_WINDOW);
+				program.setActiveWindow(program.CHAT_WINDOW);
 			} catch (Exception ex) {
 				errorLabel.setVisible(true);
 				errorLabel.setText(ex.getMessage());
