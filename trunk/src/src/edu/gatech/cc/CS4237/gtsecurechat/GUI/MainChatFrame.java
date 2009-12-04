@@ -39,6 +39,7 @@ public class MainChatFrame extends AbstractFrame {
 		super(program);
 		setTitle(FRAME_TITLE);
 		setSize(FRAME_WIDTH, FRAME_HEIGHT);
+		setResizable(false);
 		addWindowListener(new WindowAdapter() {
 			public void windowClosing(WindowEvent e) {
 				System.exit(0); // though we might want to do something other 
@@ -73,7 +74,7 @@ public class MainChatFrame extends AbstractFrame {
 		menuBar.add(helpMenu);
 		/* End of the menu bar area */
 		
-		conversationArea = new JTextArea("Bob: Hello Alice!", 20, 20);
+		conversationArea = new JTextArea(20, 20);
 		conversationArea.setEditable(false);
 		conversationArea.setLineWrap(true);
 		conversationArea.setWrapStyleWord(true);
@@ -96,8 +97,9 @@ public class MainChatFrame extends AbstractFrame {
 		pane.add(BorderLayout.CENTER, splitPane);
 	}
 	
-	protected void receiveMessage(String message) {
-		conversationArea.append("\n" + messageArea.getText());
+	protected void receiveMessage(final String message) {
+//		conversationArea.append("\n" + messageArea.getText());
+		conversationArea.append(message + "\n");
 		conversationArea.setCaretPosition(
 				conversationArea.getText().length());
 	}
@@ -105,22 +107,27 @@ public class MainChatFrame extends AbstractFrame {
 	private class AwesomeListener implements ActionListener, KeyListener {
 
 		@Override
-		public void actionPerformed(ActionEvent e) {
+		public void actionPerformed(final ActionEvent e) {
 			// TODO Auto-generated method stub
 			
 		}
 
 		@Override
-		public void keyPressed(KeyEvent e) {
+		public void keyPressed(final KeyEvent e) {
 			if (e.getKeyCode() == KeyEvent.VK_ENTER 
 					&& messageArea.getText().trim().length() > 0) {
-				program.sendMessage(messageArea.getText());
+				try {
+					program.sendMessage(messageArea.getText());
+				} catch (Exception e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
 				justSentMessage = true;
 			}
 		}
 
 		@Override
-		public void keyReleased(KeyEvent e) {
+		public void keyReleased(final KeyEvent e) {
 			if (e.getKeyCode() == KeyEvent.VK_ENTER && justSentMessage) {
 				messageArea.setText(new String());
 				justSentMessage = false;
@@ -130,7 +137,7 @@ public class MainChatFrame extends AbstractFrame {
 		}
 
 		@Override
-		public void keyTyped(KeyEvent e) {
+		public void keyTyped(final KeyEvent e) {
 //			if (e == KeyEvent.)
 		}
 	}
