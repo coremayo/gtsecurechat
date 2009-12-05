@@ -6,6 +6,9 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 
+import edu.gatech.cc.CS4237.gtsecurechat.InvalidPasswordException;
+import edu.gatech.cc.CS4237.gtsecurechat.GUI.HandshakeException;
+
 /**
  * Generates a session key by performing a variant on Diffie-Hellman.<br>
  * <a href="http://tools.ietf.org/html/draft-brusilovsky-pak-10">
@@ -67,12 +70,6 @@ public class Handshake {
 		"5A899FA5" + "AE9F2411" + "7C4B1FE6" + "49286651" + "ECE65381" +
 		"FFFFFFFF" + "FFFFFFFF", 16);
 	
-//	/**
-//	 * A very commonly used constant for the hash functions. 2^128
-//	 */
-//	private final BigInteger exp2_128 = 
-//		new BigInteger("2").mod(new BigInteger("128"));
-	
 	/**
 	 * Used for hashing stuff.
 	 */
@@ -129,7 +126,7 @@ public class Handshake {
 	 * @return Alice's message to send to Bob.
 	 * @throws Exception 
 	 */
-	public byte[] m1() throws Exception {
+	public byte[] m1() throws HandshakeException {
 		byte[] retBytes;
 		byte[] tempBytes;
 		BigInteger tempInt;
@@ -170,7 +167,7 @@ public class Handshake {
 	 * @return Bob's message to send to Alice.
 	 * @throws Exception 
 	 */
-	public byte[] m2(byte[] message) throws Exception {
+	public byte[] m2(byte[] message) throws HandshakeException {
 		byte[] retBytes;
 		byte[] tempBytes;
 		int i;
@@ -185,7 +182,7 @@ public class Handshake {
 		
 		// check to make sure the message is the right length
 		if (message.length != alice.length() + 129) {
-			throw new Exception("Received invalid handshake");
+			throw new HandshakeException("Received invalid handshake");
 		}
 		
 		// extract Q from the message, Q should equal X
@@ -197,7 +194,7 @@ public class Handshake {
 
 		// Alice can't just send us a 0
 		if (Q.compareTo(new BigInteger("0")) == 0) {
-			throw new Exception("Receive a value of 0");
+			throw new HandshakeException("Receive a value of 0");
 		}
 		
 		// we can now recover g^Ra = Q / H1(A|B|PW)
@@ -279,7 +276,9 @@ public class Handshake {
 	 * @return
 	 * @throws Exception
 	 */
-	public byte[] m3(byte[] message) throws Exception {
+	public byte[] m3(byte[] message) 
+			throws HandshakeException, 
+			       InvalidPasswordException {
 		byte[] tempBytes;
 		byte[] S1calc, S1recv;
 		byte[] S2;
@@ -304,7 +303,7 @@ public class Handshake {
 		
 		// Bob can't just send us a 0
 		if (Y.compareTo(new BigInteger("0")) == 0) {
-			throw new Exception("Received a value of 0");
+			throw new HandshakeException("Received a value of 0");
 		}
 		
 		// Y / H2(z) = Yba, or g^Rb
@@ -354,7 +353,7 @@ public class Handshake {
 		
 		// authenticate Bob by checking whether S1' equals the received S1
 		if (!Arrays.equals(S1recv, S1calc)) {
-			throw new Exception("Received bad handshake");
+			throw new InvalidPasswordException("Invalid Password");
 		}
 		
 		// if authenticated, then K = H5(A|B|PW|g^Ra|Yba|(Yba)^Ra)
@@ -376,7 +375,9 @@ public class Handshake {
 	 * @param message
 	 * @throws Exception
 	 */
-	public void m4(byte[] message) throws Exception {
+	public void m4(byte[] message) 
+			throws HandshakeException,  
+			       InvalidPasswordException{
 		byte[] S2calc, S2recv;
 		
 		// The entire message should have been S2 which is 128 bits or 16 bytes
@@ -387,7 +388,7 @@ public class Handshake {
 		
 		// authenticate Alice by checking whether S2' equals the received S2
 		if (!Arrays.equals(S2recv, S2calc)) {
-			throw new Exception("Received bad handshake");
+			throw new InvalidPasswordException("Invalid Password");
 		}
 		
 		// if authenticated then sets K = H5(A|B|PW|Xab|g^Rb|(Xab)^Rb)
@@ -403,7 +404,7 @@ public class Handshake {
 	 * @return
 	 * @throws Exception if for some unlikely reason H1 generated a 0
 	 */
-	private byte[] H1() throws Exception {
+	private byte[] H1() throws HandshakeException {
 		return H1_2(1);
 	}
 	
@@ -416,7 +417,7 @@ public class Handshake {
 	 * @return
 	 * @throws Exception if for some unlikely reason H2(z) generated a 0
 	 */
-	private byte[] H2() throws Exception {
+	private byte[] H2() throws HandshakeException {
 		return H1_2(2);
 	}
 	
@@ -425,7 +426,7 @@ public class Handshake {
 	 * @return
 	 * @throws Exception
 	 */
-	private byte[] H3(byte[] arg) throws Exception {
+	private byte[] H3(byte[] arg) throws HandshakeException {
 		return H3_5(3, arg);
 	}
 	
@@ -434,7 +435,7 @@ public class Handshake {
 	 * @return
 	 * @throws Exception
 	 */
-	private byte[] H4(byte[] arg) throws Exception {
+	private byte[] H4(byte[] arg) throws HandshakeException {
 		return H3_5(4, arg);
 	}
 	
@@ -443,7 +444,7 @@ public class Handshake {
 	 * @return
 	 * @throws Exception
 	 */
-	private byte[] H5(byte[] arg) throws Exception {
+	private byte[] H5(byte[] arg) throws HandshakeException {
 		return H3_5(5, arg);
 	}
 	
@@ -454,14 +455,14 @@ public class Handshake {
 	 * @return the value of Hi(z) where i is either 1 or 2
 	 * @throws Exception 
 	 */
-	private byte[] H1_2(int index) throws Exception {
+	private byte[] H1_2(int index) throws HandshakeException {
 		byte[] u;
 		byte[] tempBytes;
 		byte[] retBytes;
 		
 		// sanity check
 		if (index != 1 && index != 2) {
-			throw new Exception("Value for index can only be 1 or 2");
+			throw new HandshakeException("Value for index can only be 1 or 2");
 		}
 		
 		// we will be returning a 1152-bit value, or 144 Bytes
@@ -501,7 +502,7 @@ public class Handshake {
 		
 		// We cannot return 0
 		if (Arrays.equals(retBytes, new byte[retBytes.length])) {
-			throw new Exception("You must pick another password.");
+			throw new HandshakeException("You must pick another password.");
 		} else {
 			return retBytes;
 		}
@@ -514,14 +515,15 @@ public class Handshake {
 	 * @return the value of Hi(z) where i is either 3, 4, or 5
 	 * @throws Exception 
 	 */
-	private byte[] H3_5(int index, byte[] arg) throws Exception {
+	private byte[] H3_5(int index, byte[] arg) throws HandshakeException {
 		byte[] u;
 		byte[] tempBytes;
 		byte[] retBytes;
 		
 		// sanity check
 		if (index != 3 && index != 4 && index != 5) {
-			throw new Exception("Value for index can only be 3, 4, or 5");
+			throw new HandshakeException(
+					"Value for index can only be 3, 4, or 5");
 		}
 		
 		// Hi(arg) = sha(32-bit|32-bit|arg|arg) mod 2^128

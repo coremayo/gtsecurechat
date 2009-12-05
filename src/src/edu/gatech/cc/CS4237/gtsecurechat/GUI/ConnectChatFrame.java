@@ -15,6 +15,8 @@ import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 
+import edu.gatech.cc.CS4237.gtsecurechat.InvalidPasswordException;
+
 public class ConnectChatFrame 
 		extends AbstractFrame
 		implements ActionListener {
@@ -165,13 +167,16 @@ public class ConnectChatFrame
 						         passField.getPassword());
 				setVisible(false);
 				program.setActiveWindow(program.CHAT_WINDOW);
+			} catch (InvalidPasswordException ex) {
+				errorLabel.setVisible(true);
+				errorLabel.setText(ex.getMessage());
+				setVisible(true);
 			} catch (Exception ex) {
 				errorLabel.setVisible(true);
 				errorLabel.setText(ex.getMessage());
 				ex.printStackTrace();
+				setVisible(true);
 			}
-			
 		}
 	}
-
 }
