@@ -1,9 +1,11 @@
 package edu.gatech.cc.CS4237.gtsecurechat.network;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.PrintStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -17,7 +19,16 @@ public class ChatNetwork implements Runnable {
 	private Socket sock;
 	private ServerSocket srvSock;
 	private BufferedReader in;
-	private PrintStream out;
+	private PrintWriter out;
+	
+	/**
+	 * @param program
+	 * @param sock
+	 */
+	public ChatNetwork(GTSecureChat program, Socket sock) {
+		this.program = program;
+		this.sock = sock;
+	}
 	
 	/**
 	 * Listens on a specific port.
@@ -40,8 +51,7 @@ public class ChatNetwork implements Runnable {
 	 */
 	public ChatNetwork(GTSecureChat program, String host, int port) 
 			throws UnknownHostException, IOException {
-		this.program = program;
-		sock = new Socket(host, port);
+		this(program, new Socket(host, port));
 	}
 	
 	/**
@@ -50,8 +60,9 @@ public class ChatNetwork implements Runnable {
 	 * @param message
 	 * @throws IOException
 	 */
-	public void sendMessage(final byte[] message) throws IOException {
-		out.write(message);
+	public void sendMessage(String message) throws IOException {
+		out.println(message);
+		out.flush();
 	}
 
 	@Override
@@ -61,7 +72,8 @@ public class ChatNetwork implements Runnable {
 				sock = srvSock.accept();
 			}
 			in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
-			out = new PrintStream(sock.getOutputStream());
+			out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(sock.getOutputStream())));
+//			out = new BufferedWriter(new OutputStreamWriter(sock.getOutputStream()));
 			
 			String message;
 			while((message = in.readLine()) != null && !message.equals("quit")) {
@@ -88,5 +100,9 @@ public class ChatNetwork implements Runnable {
 	
 	public int getRemotePort() {
 		return sock.getPort();
+	}
+	
+	public Socket getSocket() {
+		return this.sock;
 	}
 }
