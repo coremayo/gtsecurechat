@@ -145,11 +145,9 @@ public class CreateChatFrame
 		} else if (e.getSource() == okayButton) {
 		// User clicked OK
 			try {
-				System.out.println("user clicked ok");
 				program.createNewChat(nameField.getText(), 
 						              portField.getText(), 
 						              passField.getPassword());
-				System.out.println("done with network crap");
 				setVisible(false);
 				program.setActiveWindow(program.CHAT_WINDOW);
 			} catch (Exception ex) {
