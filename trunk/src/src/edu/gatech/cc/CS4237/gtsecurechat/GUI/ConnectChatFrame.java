@@ -168,6 +168,7 @@ public class ConnectChatFrame
 			} catch (Exception ex) {
 				errorLabel.setVisible(true);
 				errorLabel.setText(ex.getMessage());
+				ex.printStackTrace();
 			}
 			
 		}

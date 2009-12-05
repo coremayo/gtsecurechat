@@ -4,6 +4,7 @@ import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.util.Arrays;
 
 /**
  * Generates a session key by performing a variant on Diffie-Hellman.<br>
@@ -15,7 +16,7 @@ import java.security.SecureRandom;
 public class Handshake {
 	
 	/**
-	 * Identies of Alice and Bob.
+	 * Identities of Alice and Bob. Reffered from here on out as A and B.
 	 */
 	private String alice, bob;
 	
@@ -26,9 +27,16 @@ public class Handshake {
 	
 	/**
 	 * Used in the calculation of various hash functions.
-	 * z = (Alice|Bob|Password)
+	 * z1 = (A|B|Password)
 	 */
-	private byte[] z;
+	private byte[] z1;
+	
+	/**
+	 * Used in the calculation of H3, H4, and H5 hash functions.<br>
+	 * For Alice, z2 = (A|B|PW|g^Ra|Yba|(Yba)^Ra)<br>
+	 * For Bob, z2 = (A|B|PW|Xab|g^Rb|(Xab)^Rb)
+	 */
+	private byte[] z2;
 	
 	/**
 	 * The session key that will be negotiated during the handshake.
@@ -57,14 +65,18 @@ public class Handshake {
 		"F25F1437" + "4FE1356D" + "6D51C245" + "E485B576" + "625E7EC6" +
 		"F44C42E9" + "A637ED6B" + "0BFF5CB6" + "F406B7ED" + "EE386BFB" +
 		"5A899FA5" + "AE9F2411" + "7C4B1FE6" + "49286651" + "ECE65381" +
-		"FFFFFFFF" + "FFFFFFFF",
-		16);
+		"FFFFFFFF" + "FFFFFFFF", 16);
+	
+//	/**
+//	 * A very commonly used constant for the hash functions. 2^128
+//	 */
+//	private final BigInteger exp2_128 = 
+//		new BigInteger("2").mod(new BigInteger("128"));
 	
 	/**
-	 * A very commonly used constant for the hash functions. 2^128
+	 * Used for hashing stuff.
 	 */
-	private final BigInteger exp2_128 = 
-		new BigInteger("2").mod(new BigInteger("128"));
+	private MessageDigest sha;
 
 	/**
 	 * 
@@ -83,18 +95,26 @@ public class Handshake {
 		// generate a sufficiently large prime for the exponent
 		rand = BigInteger.probablePrime(384, new SecureRandom());
 		
-		z = new byte[this.alice.length() + this.bob.length() + pass.length];
+		z1 = new byte[this.alice.length() + this.bob.length() + pass.length];
 		int i = 0;
 		for (int j = 0; j < alice.length(); j++) {
-			z[i] = (byte) alice.charAt(j);
+			z1[i] = (byte) alice.charAt(j);
 			i++;
 		}
 		for (int j = 0; j < bob.length(); j++) {
-			z[i] = (byte) bob.charAt(j);
+			z1[i] = (byte) bob.charAt(j);
 			i++;
 		}
 		for (int j = 0; j < pass.length; j++) {
-			z[i] = (byte) pass[j];
+			z1[i] = (byte) pass[j];
+		}
+		
+		// we will be using SHA-1
+		try {
+			sha = MessageDigest.getInstance("SHA-1");
+		} catch (NoSuchAlgorithmException e) {
+			// this shouldn't ever happen, but just in case...
+			e.printStackTrace();
 		}
 	}
 	
@@ -104,29 +124,35 @@ public class Handshake {
      * Bob selects a secret random exponent Rb and computes g^Rb.
      * For efficiency purposes, short exponents could be used for Ra and Rb
      * provided they have a certain minimum size.  Then:
-     * - A --> B: {A, X = H1(A|B|PW)*(g^Ra)
+     * - A --> B: {A, X = H1(A|B|PW)*(g^Ra)}
      * 
 	 * @return Alice's message to send to Bob.
 	 * @throws Exception 
 	 */
 	public byte[] m1() throws Exception {
 		byte[] retBytes;
+		byte[] tempBytes;
+		BigInteger tempInt;
 		BigInteger X;
 		int i;
 		
 		// calculate g^Ra mod p
 		expG_Ra = g.modPow(rand, p);
 		
+		tempBytes = H1();
+		tempInt = new BigInteger(tempBytes);
+		
 		// return (A|H1(z)*(g^Ra))
-		retBytes = new byte[alice.length() + 128];
+		retBytes = new byte[alice.length() + 129];
 		
 		for (i = 0; i < alice.length(); i++) {
 			retBytes[i] = (byte)alice.charAt(i);
 		}
 		
-		// H1(z)*(g^Ra) will be 1024 bits or 128 Bytes
-		X = H1().multiply(expG_Ra).mod(p);
-		for (byte b : bigIntToByteArray(X, 128)) {
+		// X = H1(z)*(g^Ra) will be 1024 bits or 128 Bytes
+		X = (tempInt.multiply(expG_Ra)).mod(p);
+		tempBytes = bigIntToByteArray(X, 129);
+		for (byte b : tempBytes) {
 			retBytes[i] = b;
 			i++;
 		}
@@ -150,19 +176,25 @@ public class Handshake {
 		int i;
 		BigInteger Q;
 		BigInteger Y;
-		BigInteger S1;
+		byte[] S1;
+		BigInteger h2;
 		BigInteger tempInt;
 		
 		// bob's calcluates g^Rb
 		expG_Rb = g.modPow(rand, p);
 		
+		// check to make sure the message is the right length
+		if (message.length != alice.length() + 129) {
+			throw new Exception("Received invalid handshake");
+		}
+		
 		// extract Q from the message, Q should equal X
-		tempBytes = new byte[128];
+		tempBytes = new byte[129];
 		for (i = 0; i < tempBytes.length; i++) {
 			tempBytes[i] = message[i + alice.length()];
 		}
 		Q = new BigInteger(tempBytes);
-		
+
 		// Alice can't just send us a 0
 		if (Q.compareTo(new BigInteger("0")) == 0) {
 			throw new Exception("Receive a value of 0");
@@ -171,60 +203,62 @@ public class Handshake {
 		// we can now recover g^Ra = Q / H1(A|B|PW)
 		// a/b always means a * x (mod p), where x is the multiplicative inverse
         // of b modulo p
-		tempInt = H1();
+		tempBytes = H1();
+		tempInt = new BigInteger(tempBytes);
 		expG_Ra = Q.multiply(tempInt.modInverse(p)).mod(p);
 		
 		// Y = H2(A|B|PW)*(g^Rb)
-		Y = H2().multiply(expG_Rb).mod(p);
+		h2 = new BigInteger(H2());
+		Y = h2.multiply(expG_Rb).mod(p);
 		
 		// S1 = H3(A|B|PW|Xab|g^Rb|(Xab)^Rb) where Xab is recovered value g^Ra
-		tempBytes = new byte[alice.length() + // number of chars in alice
+		z2 = new byte[alice.length() + // number of chars in alice
 		                     bob.length() +   // number of chars in bob
 		                     pass.length +    // number of chars in password
-		                     128 +  // number of bytes in Xab, always 128
-		                     128 +  // number of bytes in g^Rb mod p
-		                     128];  // number of bytes in (Xab)^Rb mod p
+		                     129 +  // number of bytes in Xab, always 128
+		                     129 +  // number of bytes in g^Rb mod p
+		                     129];  // number of bytes in (Xab)^Rb mod p
 		i = 0;
 		// A
 		for (byte b : alice.getBytes()) {
-			tempBytes[i] = b;
+			z2[i] = b;
 			i++;
 		}
 		// B
 		for (byte b : bob.getBytes()) {
-			tempBytes[i] = b;
+			z2[i] = b;
 			i++;
 		}
 		// PW
 		for (char c : pass) {
-			tempBytes[i] = (byte) c;
+			z2[i] = (byte) c;
 			i++;
 		}
 		// Xab 128 bytes
-		for (byte b : bigIntToByteArray(expG_Ra, 128)) {
-			tempBytes[i] = b;
+		for (byte b : bigIntToByteArray(expG_Ra, 129)) {
+			z2[i] = b;
 			i++;
 		}
 		// g^Rb 128 bytes
-		for (byte b : bigIntToByteArray(expG_Rb, 128)) {
-			tempBytes[i] = b;
+		for (byte b : bigIntToByteArray(expG_Rb, 129)) {
+			z2[i] = b;
 			i++;
 		}
 		// (Xab)^Rb 128 bytes
-		for (byte b : bigIntToByteArray(expG_Rb.modPow(rand, p), 128)) {
-			tempBytes[i] = b;
+		for (byte b : bigIntToByteArray(expG_Ra.modPow(rand, p), 129)) {
+			z2[i] = b;
 			i++;
 		}
-		S1 = H3(tempBytes);
+		S1 = H3(z2);
 		
 		// B --> A: {Y, S1} (Y = 1024bits + S1 = 128bits) = 1152bits or 144Bytes
-		retBytes = new byte[144];
+		retBytes = new byte[129 + S1.length];
 		i = 0;
-		for (byte b : bigIntToByteArray(Y, 128)) {
+		for (byte b : bigIntToByteArray(Y, 129)) {
 			retBytes[i] = b;
 			i++;
 		}
-		for (byte b : bigIntToByteArray(S1, 16)) {
+		for (byte b : S1) {
 			retBytes[i] = b;
 			i++;
 		}
@@ -246,15 +280,14 @@ public class Handshake {
 	 * @throws Exception
 	 */
 	public byte[] m3(byte[] message) throws Exception {
-		byte[] retBytes;
 		byte[] tempBytes;
+		byte[] S1calc, S1recv;
+		byte[] S2;
 		int i;
 		BigInteger Y;
-		BigInteger S1calc, S1recv;
-		BigInteger S2;
 		
 		// Y will be the first 1024 bits, or 128 bytes
-		tempBytes = new byte[128];
+		tempBytes = new byte[129];
 		i = 0;
 		for (int j = 0; j < tempBytes.length; j++) {
 			tempBytes[j] = message[i];
@@ -263,75 +296,74 @@ public class Handshake {
 		Y = new BigInteger(tempBytes);
 		
 		// S1 received will be the remaining 128 bits or 16 bytes
-		tempBytes = new byte[16];
-		for (int j = 0; j < tempBytes.length; j++) {
-			tempBytes[j] = message[i];
+		S1recv = new byte[16];
+		for (int j = 0; j < S1recv.length; j++) {
+			S1recv[j] = message[i];
 			i++;
 		}
-		S1recv = new BigInteger(tempBytes);
 		
 		// Bob can't just send us a 0
 		if (Y.compareTo(new BigInteger("0")) == 0) {
-			throw new Exception("Receive a value of 0");
+			throw new Exception("Received a value of 0");
 		}
 		
 		// Y / H2(z) = Yba, or g^Rb
 		// a/b always means a * x (mod p), where x is the multiplicative inverse
         // of b modulo p
-		expG_Rb = Y.multiply(H2().modInverse(p)).mod(p);
+		expG_Rb = Y.multiply(new BigInteger(H2()).modInverse(p)).mod(p);
 		
 		// S1' = H3(A|B|PW|g^Ra|Yba|(Yba)^Ra) where Yba is recovered value g^Rb
-		tempBytes = new byte[alice.length() + // number of chars in Alice
+		z2 = new byte[alice.length() + // number of chars in Alice
 		                     bob.length() +   // number of chars in Bob
 		                     pass.length +    // number of chars in password
-		                     128 +  // number of bytes in g^Ra mod p, always 128
-		                     128 +  // number of bytes in Yba
-		                     128];  // number of bytes in (Yba)^Ra mod p
+		                     129 +  // number of bytes in g^Ra mod p, always 128
+		                     129 +  // number of bytes in Yba
+		                     129];  // number of bytes in (Yba)^Ra mod p
 		i = 0;
 		// A
 		for (byte b : alice.getBytes()) {
-			tempBytes[i] = b;
+			z2[i] = b;
 			i++;
 		}
 		// B
 		for (byte b : bob.getBytes()) {
-			tempBytes[i] = b;
+			z2[i] = b;
 			i++;
 		}
 		// PW
 		for (char c : pass) {
-			tempBytes[i] = (byte) c;
+			z2[i] = (byte) c;
 			i++;
 		}
 		// g^Ra 128 bytes
-		for (byte b : bigIntToByteArray(expG_Ra, 128)) {
-			tempBytes[i] = b;
+		for (byte b : bigIntToByteArray(expG_Ra, 129)) {
+			z2[i] = b;
 			i++;
 		}
 		// Yba 128 bytes
-		for (byte b : bigIntToByteArray(expG_Rb, 128)) {
-			tempBytes[i] = b;
+		for (byte b : bigIntToByteArray(expG_Rb, 129)) {
+			z2[i] = b;
 			i++;
 		}
 		// (Yba)^Ra 128 bytes
-		for (byte b : bigIntToByteArray(expG_Rb.modPow(rand, p), 128)) {
-			tempBytes[i] = b;
+		for (byte b : bigIntToByteArray(expG_Rb.modPow(rand, p), 129)) {
+			z2[i] = b;
 			i++;
 		}
-		S1calc = H3(tempBytes);
+		S1calc = H3(z2);
 		
 		// authenticate Bob by checking whether S1' equals the received S1
-		if (S1recv.compareTo(S1calc) != 0) {
+		if (!Arrays.equals(S1recv, S1calc)) {
 			throw new Exception("Received bad handshake");
 		}
 		
 		// if authenticated, then K = H5(A|B|PW|g^Ra|Yba|(Yba)^Ra)
-		K = bigIntToByteArray(H5(tempBytes), 16);
+		K = H5(z2);
 		
 		// - A --> B:  S2 = H4(A|B|PW|g^Ra|Yba|(Yba)^Ra)
-		S2 = H4(tempBytes);
-		retBytes = bigIntToByteArray(S2, 16);
-		return retBytes;
+		S2 = H4(z2);
+//		retBytes = bigIntToByteArray(S2, 16);
+		return S2;
 	}
 	
 	/**
@@ -345,60 +377,21 @@ public class Handshake {
 	 * @throws Exception
 	 */
 	public void m4(byte[] message) throws Exception {
-		byte[] tempBytes;
-		int i;
-		BigInteger S2calc, S2recv;
+		byte[] S2calc, S2recv;
 		
 		// The entire message should have been S2 which is 128 bits or 16 bytes
-		S2recv = new BigInteger(message);
+		S2recv = message;
 		
 		// Compute S2' = H4(A|B|PW|Xab|g^Rb|(Xab)^Rb)
-		tempBytes = new byte[alice.length() + // number of chars in Alice
-		                     bob.length() +   // number of chars in Bob
-		                     pass.length +    // number of chars in password
-		                     128 +  // number of bytes in g^Ra mod p, always 128
-		                     128 +  // number of bytes in Yba
-		                     128];  // number of bytes in (Yba)^Ra mod p
-		i = 0;
-		// A
-		for (byte b : alice.getBytes()) {
-			tempBytes[i] = b;
-			i++;
-		}
-		// B
-		for (byte b : bob.getBytes()) {
-			tempBytes[i] = b;
-			i++;
-		}
-		// PW
-		for (char c : pass) {
-			tempBytes[i] = (byte) c;
-			i++;
-		}
-		// Xab 128 bytes
-		for (byte b : bigIntToByteArray(expG_Ra, 128)) {
-			tempBytes[i] = b;
-			i++;
-		}
-		// g^Rb 128 bytes
-		for (byte b : bigIntToByteArray(expG_Rb, 128)) {
-			tempBytes[i] = b;
-			i++;
-		}
-		// (Xab)^Rb 128 bytes
-		for (byte b : bigIntToByteArray(expG_Rb.modPow(rand, p), 128)) {
-			tempBytes[i] = b;
-			i++;
-		}
-		S2calc = H4(tempBytes);
+		S2calc = H4(z2);
 		
 		// authenticate Alice by checking whether S2' equals the received S2
-		if (S2recv.compareTo(S2calc) != 0) {
+		if (!Arrays.equals(S2recv, S2calc)) {
 			throw new Exception("Received bad handshake");
 		}
 		
 		// if authenticated then sets K = H5(A|B|PW|Xab|g^Rb|(Xab)^Rb)
-		K = bigIntToByteArray(H5(tempBytes), 16);
+		K = H5(z2);
 	}
 	
 	/**
@@ -410,7 +403,7 @@ public class Handshake {
 	 * @return
 	 * @throws Exception if for some unlikely reason H1 generated a 0
 	 */
-	private BigInteger H1() throws Exception {
+	private byte[] H1() throws Exception {
 		return H1_2(1);
 	}
 	
@@ -422,9 +415,8 @@ public class Handshake {
 	 * SHA-1(2|9|z) mod 2^128
 	 * @return
 	 * @throws Exception if for some unlikely reason H2(z) generated a 0
-	 * @throws NoSuchAlgorithmException
 	 */
-	private BigInteger H2() throws Exception {
+	private byte[] H2() throws Exception {
 		return H1_2(2);
 	}
 	
@@ -433,7 +425,7 @@ public class Handshake {
 	 * @return
 	 * @throws Exception
 	 */
-	private BigInteger H3(byte[] arg) throws Exception {
+	private byte[] H3(byte[] arg) throws Exception {
 		return H3_5(3, arg);
 	}
 	
@@ -442,7 +434,7 @@ public class Handshake {
 	 * @return
 	 * @throws Exception
 	 */
-	private BigInteger H4(byte[] arg) throws Exception {
+	private byte[] H4(byte[] arg) throws Exception {
 		return H3_5(4, arg);
 	}
 	
@@ -451,7 +443,7 @@ public class Handshake {
 	 * @return
 	 * @throws Exception
 	 */
-	private BigInteger H5(byte[] arg) throws Exception {
+	private byte[] H5(byte[] arg) throws Exception {
 		return H3_5(5, arg);
 	}
 	
@@ -462,12 +454,10 @@ public class Handshake {
 	 * @return the value of Hi(z) where i is either 1 or 2
 	 * @throws Exception 
 	 */
-	private BigInteger H1_2(int index) throws Exception {
+	private byte[] H1_2(int index) throws Exception {
 		byte[] u;
 		byte[] tempBytes;
 		byte[] retBytes;
-		BigInteger tempInt;
-		MessageDigest sha = null;
 		
 		// sanity check
 		if (index != 1 && index != 2) {
@@ -478,37 +468,28 @@ public class Handshake {
 		retBytes = new byte[144];
 		
 		// we are taking the hash of (32-bit int|32-bit int|z)
-		u = new byte[z.length + 8];
+		u = new byte[z1.length + 8];
 		tempBytes = intToByteArray(index);
 		u[0] = tempBytes[0];
 		u[1] = tempBytes[1];
 		u[2] = tempBytes[2];
 		u[3] = tempBytes[3];
-		for (int i = 0; i < z.length; i++) {
-			u[i+8] = z[i];
-		}
-		
-		// we will be using SHA-1
-		try {
-			sha = MessageDigest.getInstance("SHA-1");
-		} catch (NoSuchAlgorithmException e) {
-			// this shouldn't ever happen, but just in case...
-			throw new Exception(e);
+		for (int i = 0; i < z1.length; i++) {
+			u[i+8] = z1[i];
 		}
 		
 		// We take 9 hashes in all. Each time, we take 128 bits, or 16 Bytes.
-		for (byte i = 0; i < 9; i++) {
+		for (int i = 0; i < 9; i++) {
 			tempBytes = intToByteArray(i);
 			u[4] = tempBytes[0];
 			u[5] = tempBytes[1];
 			u[6] = tempBytes[2];
 			u[7] = tempBytes[3];
 			tempBytes = sha.digest(u);
-			tempInt = new BigInteger(tempBytes).mod(exp2_128);
 			
-			int j = 0;
-			for (byte b : bigIntToByteArray(tempInt, 16)) {
-				retBytes[16 * i + j] = b;
+			// SHA-1 returns 160 bits; we only want 128 (or 20 bytes/16 bytes)
+			for (int j = 0; j < 16 ; j++) {
+				retBytes[16 * i + j] = tempBytes[j + tempBytes.length - 16];
 				j++;
 			}
 		}
@@ -517,29 +498,26 @@ public class Handshake {
 		for (int i = 0; i < u.length; i++) {
 			u[i] = 0;
 		}
-		tempInt = new BigInteger(retBytes);
 		
 		// We cannot return 0
-		if (tempInt.compareTo(new BigInteger("0")) == 0) {
+		if (Arrays.equals(retBytes, new byte[retBytes.length])) {
 			throw new Exception("You must pick another password.");
 		} else {
-			return tempInt;
+			return retBytes;
 		}
 	}
 	
 	/**
 	 * Since the only difference between H3, H4, and H5 is one byte in the 
-	 * hashed value, we will do all the actual work here.
+	 * hashed value, we will do all the actual work here. Returns 16 bytes.
 	 * @param i 3, 4, or 5 depending on if called from H3, H4, or H5
 	 * @return the value of Hi(z) where i is either 3, 4, or 5
 	 * @throws Exception 
 	 */
-	private BigInteger H3_5(int index, byte[] arg) throws Exception {
+	private byte[] H3_5(int index, byte[] arg) throws Exception {
 		byte[] u;
 		byte[] tempBytes;
 		byte[] retBytes;
-		BigInteger tempInt;
-		MessageDigest sha = null;
 		
 		// sanity check
 		if (index != 3 && index != 4 && index != 5) {
@@ -565,33 +543,21 @@ public class Handshake {
 			u[8 + i + arg.length] = arg[i];
 		}
 		
-		// we will be using SHA-1
-		try {
-			sha = MessageDigest.getInstance("SHA-1");
-		} catch (NoSuchAlgorithmException e) {
-			// this shouldn't ever happen, but just in case...
-			throw new Exception(e);
-		}
-		
 		// Take the hash function
 		tempBytes = sha.digest(u);
-		tempInt = new BigInteger(tempBytes).mod(exp2_128);
 		
+		// SHA-1 provides 160 bits or 20 bytes
 		// we will be returning 128-bits or 16 bytes
-		retBytes = bigIntToByteArray(tempInt, 16);
+		retBytes = new byte[16];
+		for (int i = 0; i < retBytes.length; i++) {
+			retBytes[i] = tempBytes[i + tempBytes.length - retBytes.length];
+		}
 		
 		// Just in case, make sure to clear the stored password from memory.
 		for (int i = 0; i < u.length; i++) {
 			u[i] = 0;
 		}
-		tempInt = new BigInteger(retBytes);
-		
-		// We cannot return 0
-		if (tempInt.compareTo(new BigInteger("0")) == 0) {
-			throw new Exception("You must pick another password.");
-		} else {
-			return tempInt;
-		}
+		return retBytes;
 	}
 	
 	
@@ -604,8 +570,8 @@ public class Handshake {
 		for (int i = 0; i < pass.length; i++) {
 			pass[i] = 0;
 		}
-		for (int i = 0; i < z.length; i++) {
-			z[i] = 0;
+		for (int i = 0; i < z1.length; i++) {
+			z1[i] = 0;
 		}
 	}
 
@@ -660,9 +626,9 @@ public class Handshake {
 			
 		} else {
 			// no, we need to truncate
-			i = 0;
-			for (int j = arrLen - numBytes; j < arrLen; j++) {
-				ret[i] = arr[j];
+			int offset = arrLen - numBytes;
+			for (int j = 0; j < numBytes; j++) {
+				ret[j] = arr[j+offset];
 			}
 			return ret;
 		}
@@ -676,27 +642,21 @@ public class Handshake {
 	public byte[] getKey() {
 		return K;
 	}
+	
+	/**
+	 * Converts a byte array into a String of hex characters.
+	 * @param arr
+	 * @return
+	 */
+	public static String byteArrayToHexString(byte[] arr) {
+		StringBuffer sb = new StringBuffer(arr.length * 2);
+		for (byte b : arr) {
+			int a = b & 0xff;
+			if (a < 16) {
+				sb.append('0');
+			}
+			sb.append(Integer.toHexString(a));
+		}
+		return sb.toString();
+	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
