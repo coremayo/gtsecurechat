@@ -105,14 +105,12 @@ public class GTSecureChat {
 		// key negotiation fails. We want the password entry screen to remain 
 		// visible so that we can prompt Alice to retype the password if needed.
 		this.name = name;
-		int m3Size = 16;
 		handshake = new Handshake(alice, bob, pass);
 		sock = new Socket(host, port);
 		
-		byte[] m1;
 		try {
 			// Get the initial message of the handshake and sends it to Bob.
-			m1 = handshake.m1();
+			byte[] m1 = handshake.m1();
 			sock.getOutputStream().write(m1);
 		
 			// Read Bob's response, the second message of the handshake.
@@ -131,7 +129,7 @@ public class GTSecureChat {
 		// need to let Bob know that we are restarting the handshake and then 
 		// let the user know.
 		} catch (InvalidPasswordException e) {
-			sock.getOutputStream().write(new byte[m3Size]);
+			sock.getOutputStream().write(new byte[handshake.getM3Length()]);
 			sock.close();
 			throw e;
 			
@@ -195,7 +193,11 @@ public class GTSecureChat {
 			
 			// Wait for a message to be received then copy it to the chat window
 			while ((message = in.readLine()) != null) {
-				CHAT_WINDOW.receiveMessage(message);
+				
+				// Only do something if it isn't an empty string.
+				if (!message.equals("")) {
+					CHAT_WINDOW.receiveMessage(message);
+				}
 			}
 			
 			// When the TCP connection closes, then exit

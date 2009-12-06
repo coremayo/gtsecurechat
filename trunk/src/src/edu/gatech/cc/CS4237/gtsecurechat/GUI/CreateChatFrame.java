@@ -153,7 +153,6 @@ public class CreateChatFrame
 			} catch (Exception ex) {
 				errorLabel.setVisible(true);
 				errorLabel.setText(ex.getMessage());
-				ex.printStackTrace();
 			}
 		}
 	}
