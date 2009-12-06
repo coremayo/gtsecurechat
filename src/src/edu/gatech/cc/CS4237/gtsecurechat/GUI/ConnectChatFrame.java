@@ -52,8 +52,6 @@ public class ConnectChatFrame
 		add(panel);
 		//TODO make some snazzy borders... panel.setBorder(...
 		
-		//TODO add chat password field
-		
 		nameLabel = new JLabel("Name");
 		c.fill = GridBagConstraints.NONE;
 		c.anchor = GridBagConstraints.NORTHWEST;
@@ -163,7 +161,7 @@ public class ConnectChatFrame
 			try {
 				program.joinChat(nameField.getText(), 
 						         hostField.getText(), 
-						         portField.getText(),
+						         Integer.parseInt(portField.getText()),
 						         passField.getPassword());
 				setVisible(false);
 				program.setActiveWindow(program.CHAT_WINDOW);

@@ -146,7 +146,7 @@ public class CreateChatFrame
 		// User clicked OK
 			try {
 				program.createNewChat(nameField.getText(), 
-						              portField.getText(), 
+						              Integer.parseInt(portField.getText()), 
 						              passField.getPassword());
 				setVisible(false);
 				program.setActiveWindow(program.CHAT_WINDOW);
