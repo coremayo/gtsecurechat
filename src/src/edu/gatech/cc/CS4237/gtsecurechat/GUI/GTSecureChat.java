@@ -55,6 +55,7 @@ public class GTSecureChat {
 		setActiveWindow(WELCOME_WINDOW);
 	}
 	
+	// Makes a window visible
 	protected void setActiveWindow(JFrame window) {
 		window.setVisible(true);
 	}
@@ -62,25 +63,33 @@ public class GTSecureChat {
 	/**
 	 * We're Bob; we listen for Alice to connect.
 	 * @param name Bob's actual name
-	 * @param portName port number to listen on
+	 * @param portName TCP port number to listen on
 	 * @param pass password for chat
-	 * @throws Exception
+	 * @throws IOException if something in the network failed
 	 */
 	protected void createNewChat(String name, int port, char[] pass) 
 			throws IOException {
 
 		this.name = name;
+		
+		// Set up some networking.
 		ServerSocket srvSock = new ServerSocket(port);
+		
+		// We use a thread here so that while Bob is waiting for Alice to 
+		// connect, we can still interact with the user. Otherwise, the program 
+		// would appear to be frozen to the user.
 		HandshakeResponder hr = new HandshakeResponder(pass, srvSock);
 		Thread handshakeThread = new Thread(hr);
 		handshakeThread.start();
+		
+		// Notify the user that we're waiting.
 		CHAT_WINDOW.setStatus("Waiting for someone to connect");
 	}
 
 	/**
 	 * We're Alice; we need to connect to Bob.
-	 * @param name Alice's actual name
-	 * @param host Bob's IP address or hostname
+	 * @param name Alice's chat handle
+	 * @param host Bob's IP address or host name
 	 * @param portName port number bob is listening on
 	 * @param pass password for chat
 	 * @throws Exception
@@ -91,6 +100,10 @@ public class GTSecureChat {
 			                char[] pass) 
 			throws InvalidPasswordException, IOException {
 		
+		// We don't use a separate thread like we do with Bob's side.
+		// If we did, then the main chat window could come up even if the 
+		// key negotiation fails. We want the password entry screen to remain 
+		// visible so that we can prompt Alice to retype the password if needed.
 		this.name = name;
 		int m3Size = 16;
 		handshake = new Handshake(alice, bob, pass);
@@ -98,35 +111,45 @@ public class GTSecureChat {
 		
 		byte[] m1;
 		try {
+			// Get the initial message of the handshake and sends it to Bob.
 			m1 = handshake.m1();
 			sock.getOutputStream().write(m1);
 		
-			int m2Size = 129 + 16;
-			byte[] m2 = new byte[m2Size];
-			if (sock.getInputStream().read(m2, 0, m2Size) != m2Size) {
+			// Read Bob's response, the second message of the handshake.
+			int m2Len = handshake.getM2Length();
+			byte[] m2 = new byte[m2Len];
+			if (sock.getInputStream().read(m2, 0, m2Len) != m2Len) {
 				sock.close();
 				throw new IOException("Alice received a bad m2 from Bob");
 			}
-			System.out.println("Alice got m2");
-		
+
+			// Get the final message of the handshake and send it to Bob.
 			byte[] m3 = handshake.m3(m2);
 			sock.getOutputStream().write(m3);
+			
+		// This will occur if Alice typed a bad password. If this happens, we 
+		// need to let Bob know that we are restarting the handshake and then 
+		// let the user know.
 		} catch (InvalidPasswordException e) {
 			sock.getOutputStream().write(new byte[m3Size]);
 			sock.close();
 			throw e;
+			
+		// This will probably only occur due to network problems.
 		} catch (HandshakeException e) {
 			throw new IOException(e);
 		}
 		
+		// After performing the handshake, proceed to set up the CryptoStreams.
 		initializeCryptoStreams();
-		
-//		// clear out the password when we're done
-//		for (int i = 0; i < pass.length; i++) {
-//			pass[i] = '\0';
-//		}
 	}
-	
+
+	/**
+	 * After negotiating the key, Alice and Bob will each call this function to 
+	 * initialize the CryptoInputStream and CryptoOutputStrem. This method also 
+	 * spawns a new thread which listens for messages sent by the other side.
+	 * @throws IOException If network problems occur
+	 */
 	private void initializeCryptoStreams() throws IOException {
 		
 		byte[] key = handshake.getKey();
@@ -142,23 +165,51 @@ public class GTSecureChat {
 		new Thread(new MessageListener()).start();
 	}
 
+	/**
+	 * This method will be called by the user interface. It will send a message 
+	 * to the CryptoOutputStream which will then pass it onto the network.
+	 * @param plain Plain text of the message.
+	 * @throws IOException If network issues occur.
+	 */
 	protected void sendMessage(String plain) throws IOException {
-		plain = name + ": " + plain;
-		out.println(plain);
-		CHAT_WINDOW.receiveMessage(plain);
+		if (out != null) {
+			plain = name + ": " + plain;
+			out.println(plain);
+			CHAT_WINDOW.receiveMessage(plain);
+		}
 	}
 
+	/**
+	 * This class is used by both Alice and Bob. After negotiating a key, they 
+	 * each will create an instance of this class then call 
+	 * "(new Thread(instance)).start();" This will listen on the 
+	 * CryptoInputStream for a message then pass that message to the GUI.<br>
+	 * As soon as the TCP connection is ended, System.exit(0) will be called.
+	 * @author corey
+	 *
+	 */
 	private class MessageListener implements Runnable {
 		@Override
 		public void run() {
 			String message;
+			
+			// Wait for a message to be received then copy it to the chat window
 			while ((message = in.readLine()) != null) {
 				CHAT_WINDOW.receiveMessage(message);
 			}
+			
+			// When the TCP connection closes, then exit
+			// TODO do we want to prompt for a new chat instance?
 			System.exit(0);
 		}
 	}
 	
+	/**
+	 * This class will be used by Bob. After opening a server socket to listen, 
+	 * Bob will want to wait for Alice to initiate the handshake.
+	 * @author corey
+	 *
+	 */
 	private class HandshakeResponder implements Runnable {
 
 		private char[] pass;
@@ -173,45 +224,67 @@ public class GTSecureChat {
 		public void run() {
 			try {
 				boolean success = false;
+				
+				// Keep trying until the handshake succeeds
 				while(!success) {
 					success = true;
+					
+					// Each time we fail, start the handshake all over
 					handshake = new Handshake(alice, bob, pass);
+					
+					// Wait for Alice.
 					sock = srvSock.accept();
 					try {
-						int m1Size = alice.length() + 129;
-						byte[] m1 = new byte[m1Size];
-						if (sock.getInputStream().read(m1, 0, m1Size) != m1Size) {
-							sock.close();
-							throw new IOException("Bob received a bad m1 from Alice");
-						}
-						CHAT_WINDOW.setStatus("Negotiating key");
-						System.out.println("Bob got m1");
 						
+						// Get the initial message of the Handshake from Alice
+						int m1Len = handshake.getM1Length();
+						byte[] m1 = new byte[m1Len];
+						if (sock.getInputStream().read(m1, 0, m1Len) != m1Len) {
+							sock.close();
+							throw new IOException(
+									"Bob received a bad m1 from Alice");
+						}
+						// Notify the user that we're talking to Alice.
+						CHAT_WINDOW.setStatus("Negotiating key");
+						
+						// Generate our response and send it to Alice.
+						// Second message of handshake.
 						byte[] m2 = handshake.m2(m1);
 						sock.getOutputStream().write(m2);
 						
-						int m3Size = 16;
-						byte[] m3 = new byte[m3Size];
-						if (sock.getInputStream().read(m3, 0, m3Size) != m3Size) {
+						// Get Alice's response, final message of handshake.
+						int m3Len = handshake.getM3Length();
+						byte[] m3 = new byte[m3Len];
+						if (sock.getInputStream().read(m3, 0, m3Len) != m3Len) {
 							sock.close();
-							throw new IOException ("Bob received a bad m3 from Alice");
+							throw new IOException (
+									"Bob received a bad m3 from Alice");
 						}
-						System.out.println("Bob got m3");
 						
+						// Check to make sure Alice's response is good and
+						// generate session key.s
 						handshake.m4(m3);
 						
+					// This will probably only occur due to network issues.
 					} catch (HandshakeException e) {
 						throw new IOException(e);
+						
+					// Handshake failed due to a bad password.
 					} catch (InvalidPasswordException e) {
-						// basically, every time authentication failed because of a bad 
-						// password we start the handshake over
+						// We start the handshake over.
 						success = false;
-						System.out.println("Alice sent us a bad password");
+						
+						// Notify the user that we're waiting.
+						CHAT_WINDOW.setStatus("Waiting for someone to connect");
 					}
 				}
+				// We're done with the handshake, so clear the status.
 				CHAT_WINDOW.setStatus(null);
+				
+				// Initialize the CryptoStreams.
 				initializeCryptoStreams();
 
+			// Some network issues occurred.
 			} catch (IOException e) {
 				e.printStackTrace();
 				//TODO come up with what to do if network stuff fails
