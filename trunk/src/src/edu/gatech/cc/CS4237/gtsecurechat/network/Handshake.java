@@ -76,7 +76,8 @@ public class Handshake {
 	private MessageDigest sha;
 
 	/**
-	 * 
+	 * Default constructor for the Handshake class. 
+	 * Called by both Alice and Bob.
 	 * @param alice
 	 * @param bob
 	 * @param pass
@@ -576,6 +577,15 @@ public class Handshake {
 			z1[i] = 0;
 		}
 	}
+	
+	/**
+	 * Returns the session key that was negitated during the handshake. If the 
+	 * handshake isn't finished yet, then this will return null.
+	 * @return 128-bit or 16 Byte session key
+	 */
+	public byte[] getKey() {
+		return K;
+	}
 
 	/**
 	 * Converts a 32-bit int to a byte array. 
@@ -583,12 +593,29 @@ public class Handshake {
 	 * @param value 32-bit integer
 	 * @return byte array representation of value
 	 */
-	private byte[] intToByteArray(int value) {
+	public static byte[] intToByteArray(int value) {
         return new byte[] {
             (byte)(value >>> 24),
             (byte)(value >>> 16),
             (byte)(value >>> 8),
             (byte)value};
+	}
+	
+	/**
+	 * Converts a 4-byte long byte array into an int.
+	 * Will return null if the number of bytes was not 4.
+	 * @param arr
+	 * @return
+	 */
+	public static Integer byteArrayToInt(byte[] arr) {
+		if (arr.length != 4) {
+			return null;
+		}
+		return new Integer(
+		((int)(arr[0])) << 24 | 
+		((int)(arr[1])) << 16 |
+		((int)(arr[2])) << 8 |
+		((int)arr[3]));
 	}
 	
 	/**
@@ -600,7 +627,7 @@ public class Handshake {
 	 * @param numBytes Length of the returned byte array
 	 * @return
 	 */
-	private byte[] bigIntToByteArray(BigInteger value, int numBytes) {
+	public static byte[] bigIntToByteArray(BigInteger value, int numBytes) {
 		byte[] ret;
 		byte[] arr;
 		int arrLen;
@@ -634,15 +661,6 @@ public class Handshake {
 			}
 			return ret;
 		}
-	}
-	
-	/**
-	 * Returns the session key that was negitated during the handshake. If the 
-	 * handshake isn't finished yet, then this will return null.
-	 * @return 128-bit or 16 Byte session key
-	 */
-	public byte[] getKey() {
-		return K;
 	}
 	
 	/**

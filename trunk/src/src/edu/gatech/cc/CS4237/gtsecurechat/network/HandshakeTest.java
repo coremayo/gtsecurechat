@@ -6,10 +6,6 @@ import org.junit.Test;
 
 public class HandshakeTest {
 
-//	public HandshakeTest() {
-//		super("alice", "bob", new char[] {'p', 'a', 's', 's', 'w', 'o', 'r', 'd'});
-//	}
-
 	@Test
 	public void testHandshake() throws Exception {
 		char[] pass = new char[] {'p', 'a', 's', 's', 'w', 'o', 'r', 'd'};

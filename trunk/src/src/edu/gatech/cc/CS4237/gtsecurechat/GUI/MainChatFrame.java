@@ -6,9 +6,11 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
+import java.io.IOException;
 
+import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
@@ -17,13 +19,13 @@ import javax.swing.JSplitPane;
 import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
 
-
 /**
  * The main gui for gtsecurechat.
  * @author corey
  *
  */
-public class MainChatFrame extends AbstractFrame {
+public class MainChatFrame extends AbstractFrame 
+		implements ActionListener, KeyListener, WindowListener {
 
 	private static final long serialVersionUID = 4344546169197711305L;
 	
@@ -32,6 +34,7 @@ public class MainChatFrame extends AbstractFrame {
 	static final String FRAME_TITLE = "GTSecureChat";
 	
 	private JTextArea conversationArea, messageArea;
+	private JLabel statusLabel;
 	
 	private boolean justSentMessage = false;
 	
@@ -40,11 +43,7 @@ public class MainChatFrame extends AbstractFrame {
 		setTitle(FRAME_TITLE);
 		setSize(FRAME_WIDTH, FRAME_HEIGHT);
 		setResizable(false);
-		addWindowListener(new WindowAdapter() {
-			public void windowClosing(WindowEvent e) {
-				System.exit(0); // though we might want to do something other 
-			}                   // than exit when the user clicks the X
-		});
+		addWindowListener(this);
 		Container pane = getContentPane();
 		
 		/* Now the menu bar... File, Edit, Help */
@@ -57,11 +56,7 @@ public class MainChatFrame extends AbstractFrame {
 		menuItem = new JMenuItem("Exit", KeyEvent.VK_X);
 		menuItem.setAccelerator(
 				KeyStroke.getKeyStroke(KeyEvent.VK_Q, ActionEvent.CTRL_MASK));
-		menuItem.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				System.exit(0);
-			}
-		});
+		menuItem.addActionListener(this);
 		fileMenu.add(menuItem);
 		menuBar.add(fileMenu);
 		
@@ -79,7 +74,7 @@ public class MainChatFrame extends AbstractFrame {
 		conversationArea.setLineWrap(true);
 		conversationArea.setWrapStyleWord(true);
 		messageArea = new JTextArea();
-		messageArea.addKeyListener(new AwesomeListener());
+		messageArea.addKeyListener(this);
 		messageArea.setLineWrap(true);
 		messageArea.setWrapStyleWord(true);
 		
@@ -95,50 +90,89 @@ public class MainChatFrame extends AbstractFrame {
 				newMessageScrollPane);
 		splitPane.setDividerLocation(0.75);
 		pane.add(BorderLayout.CENTER, splitPane);
+		
+		statusLabel = new JLabel("HELLO");
+		statusLabel.setVisible(false);
+		pane.add(BorderLayout.SOUTH, statusLabel);
 	}
 	
 	protected void receiveMessage(final String message) {
-//		conversationArea.append("\n" + messageArea.getText());
 		conversationArea.append(message + "\n");
 		conversationArea.setCaretPosition(
 				conversationArea.getText().length());
 	}
 	
-	private class AwesomeListener implements ActionListener, KeyListener {
-
-		@Override
-		public void actionPerformed(final ActionEvent e) {
-			// TODO Auto-generated method stub
-			
-		}
-
-		@Override
-		public void keyPressed(final KeyEvent e) {
-			if (e.getKeyCode() == KeyEvent.VK_ENTER 
-					&& messageArea.getText().trim().length() > 0) {
-				try {
-					program.sendMessage(messageArea.getText());
-				} catch (Exception e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-				justSentMessage = true;
-			}
-		}
-
-		@Override
-		public void keyReleased(final KeyEvent e) {
-			if (e.getKeyCode() == KeyEvent.VK_ENTER && justSentMessage) {
-				messageArea.setText(new String());
-				justSentMessage = false;
-			}
-			// TODO Auto-generated method stub
-			
-		}
-
-		@Override
-		public void keyTyped(final KeyEvent e) {
-//			if (e == KeyEvent.)
+	protected void setStatus(final String status) {
+		if (status == null) {
+			statusLabel.setVisible(false);
+		} else {
+			statusLabel.setText(status);
+			statusLabel.setVisible(true);
 		}
 	}
+
+	/**
+	 * Performs any necessary cleanup then exits the program.
+	 */
+	private void exitProgram() {
+		System.exit(0);
+	}
+	
+	@Override
+	public void keyPressed(final KeyEvent e) {
+		if (e.getKeyCode() == KeyEvent.VK_ENTER 
+				&& messageArea.getText().trim().length() > 0) {
+			try {
+				program.sendMessage(messageArea.getText());
+			} catch (IOException e1) {
+				// TODO handle network problems
+				e1.printStackTrace();
+			}
+			justSentMessage = true;
+		}
+	}
+
+	@Override
+	public void keyReleased(final KeyEvent e) {
+		if (e.getKeyCode() == KeyEvent.VK_ENTER && justSentMessage) {
+			messageArea.setText(new String());
+			justSentMessage = false;
+		}
+	}
+
+	@Override
+	public void keyTyped(final KeyEvent e) { }
+
+	@Override
+	public void actionPerformed(final ActionEvent e) {
+		if (e.getSource() instanceof JMenuItem) {
+			JMenuItem source = (JMenuItem)e.getSource();
+			if (source.getText().equals("Exit")) {
+				exitProgram();
+			}
+		}
+	}
+
+	@Override
+	public void windowActivated(final WindowEvent arg0) { }
+
+	@Override
+	public void windowClosed(final WindowEvent arg0) { }
+
+	@Override
+	public void windowClosing(final WindowEvent arg0) {
+		exitProgram();
+	}
+
+	@Override
+	public void windowDeactivated(final WindowEvent arg0) { }
+
+	@Override
+	public void windowDeiconified(final WindowEvent arg0) { }
+
+	@Override
+	public void windowIconified(final WindowEvent arg0) { }
+
+	@Override
+	public void windowOpened(final WindowEvent arg0) { }
 }

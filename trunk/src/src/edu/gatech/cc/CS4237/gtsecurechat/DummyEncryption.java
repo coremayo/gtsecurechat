@@ -15,5 +15,4 @@ public class DummyEncryption implements IStreamCipher {
 	@Override
 	public void initialize(byte[] key) {
 	}
-
 }
