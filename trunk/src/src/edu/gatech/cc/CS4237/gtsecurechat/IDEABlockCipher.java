@@ -175,24 +175,5 @@ public class IDEABlockCipher implements IBlockCipher {
 		ret += (int)(0x000000FF & second);
 		return ret;
 	}
-	
-	private int multInverse(int x) {
-		int t0, t1, q, y;
-		
-		if (x < 2) return x;
-		t0 = 0;
-		t1 = 65537 / x;
-		y = 65537 % x;
-		while (y != 1) {
-			q = x / y;
-			x %= y;
-			t0 += (t1 * q);
-			if (x==1) return t0;
-			q = y / x;
-			y %= x;
-			t1 += (t0 * q);
-		}
-		return 65537-x;
-	}
 
 }

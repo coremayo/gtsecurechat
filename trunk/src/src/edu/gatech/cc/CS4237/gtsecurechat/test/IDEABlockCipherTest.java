@@ -14,8 +14,7 @@ public class IDEABlockCipherTest{
 		IDEABlockCipher cipher = new IDEABlockCipher();
 		cipher.initialize(key);
 		
-		byte[] cipherText = cipher.encrypt(clear);
-		cipherText.clone();
+		cipher.encrypt(clear);
 	}
 	
 	@Test
