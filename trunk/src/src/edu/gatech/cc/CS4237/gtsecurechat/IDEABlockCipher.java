@@ -1,10 +1,10 @@
 package edu.gatech.cc.CS4237.gtsecurechat;
 
-import java.nio.ByteBuffer;
+import java.math.BigInteger;
 
 public class IDEABlockCipher implements IBlockCipher {
 
-	private static int[] decryptionIndexes = {96,97,98,99,100,101,102,103,92,93,94,95,84,85,86,87,88,89,90,91,80,81,82,83,72,73,74,75,76,77,78,79,68,69,70,71,60,61,62,63,64,65,66,67,56,57,58,59,48,49,50,51,52,53,54,55,44,45,46,47,36,37,38,39,40,41,42,43,32,33,34,35,24,25,26,27,28,29,30,31,20,21,22,23,12,13,14,15,16,17,18,19,8,9,10,11,0,1,2,3,4,5,6,7};
+	private static int[] decryptionIndexes = {48, 49, 50, 51, 46, 47, 42, 43, 44, 45, 40, 41, 36, 37, 38, 39,  34, 35, 30, 31, 32, 33, 28, 29, 24, 25, 26, 27, 22, 23, 18, 19, 20, 21, 16, 17, 12, 13, 14, 15, 10, 11, 6, 7, 8, 9, 4, 5, 0 ,1, 2, 3};
 	
 	private byte[] encryptionExpansions = new byte[104];
 	private byte[] decryptionExpansions = new byte[104];
@@ -27,25 +27,42 @@ public class IDEABlockCipher implements IBlockCipher {
 		for (int start = 0, index = 0; index < 104; start += 25) {
 			for (int i = 0; i < 16 && index < 104; i++, index++) {
 				int startIndex = (start + (i*8)) % 128;
-				int firstIndex = startIndex / 8;
-				int secondIndex = (startIndex / 8) + 1;
-				encryptionExpansions[index] = (byte)((key[firstIndex] & (0>>(8-(startIndex%8)))) | (key[secondIndex] & (0<<(startIndex%8))));
+				int firstIndex = (startIndex / 8) % 16;
+				int secondIndex = ((startIndex / 8) + 1) % 16;
+				int byteIndex = startIndex % 8;
+				
+				encryptionExpansions[index] = (byte)((0x000000FF & (key[firstIndex] << byteIndex)) | ((0x000000FF & key[secondIndex]) >> (8-byteIndex)));
 			}
 		}
 	}
 
 	private void expandDecryptionKey(byte[] key) {
-		for (int i = 0; i < 54; i++) {
-			byte firstByte = encryptionExpansions[decryptionIndexes[i*2]];
-			byte secondByte = encryptionExpansions[decryptionIndexes[i*2+1]];
+		for (int i = 0; i < 52; i++) {
 			if (i % 6 == 0 || i % 6 == 3) {
-				int result = multInverse(bytesToInt(firstByte, secondByte));
+				byte firstByte = encryptionExpansions[decryptionIndexes[i]*2];
+				byte secondByte = encryptionExpansions[decryptionIndexes[i]*2 + 1];
+				
+				int byteValue = bytesToInt(firstByte, secondByte);
+				int result = ((new BigInteger(Integer.toString(byteValue))).modInverse(new BigInteger("65537"))).intValue();
 				decryptionExpansions[i*2] = (byte)((0xFF00 & result) >>> 8);
 				decryptionExpansions[i*2+1] = (byte)(0xFF & result);
-			} else if (i % 6 == 2 || i % 6 == 3) {
-				int result = -bytesToInt(firstByte, secondByte);
+			} else if (i % 6 == 1) {
+				byte firstByte = encryptionExpansions[decryptionIndexes[i+1]*2];
+				byte secondByte = encryptionExpansions[decryptionIndexes[i+1]*2 + 1];
+				
+				int result = 65536-bytesToInt(firstByte, secondByte);
 				decryptionExpansions[i*2] = (byte)((0xFF00 & result) >>> 8);
 				decryptionExpansions[i*2+1] = (byte)(0xFF & result);
+			} else if (i % 6 == 2) {
+				byte firstByte = encryptionExpansions[decryptionIndexes[i-1]*2];
+				byte secondByte = encryptionExpansions[decryptionIndexes[i-1]*2 + 1];
+				
+				int result = 65536-bytesToInt(firstByte, secondByte);
+				decryptionExpansions[i*2] = (byte)((0xFF00 & result) >>> 8);
+				decryptionExpansions[i*2+1] = (byte)(0xFF & result);				
+			} else {
+				decryptionExpansions[i*2] = encryptionExpansions[decryptionIndexes[i]*2];
+				decryptionExpansions[i*2+1] = encryptionExpansions[decryptionIndexes[i]*2 + 1];
 			}
 		}
 	}
@@ -64,11 +81,11 @@ public class IDEABlockCipher implements IBlockCipher {
 		byte[] roundIn = input;
 		
 		for (int i = 0; i < 8; i++) {
-			roundIn = oddRound(roundIn, keyExpansions, i*2);
-			roundIn = evenRound(roundIn, keyExpansions, i*2+1);
+			roundIn = oddRound(roundIn, keyExpansions, i*12);
+			roundIn = evenRound(roundIn, keyExpansions, i*12+8);
 		}
 		
-		return oddRound(roundIn, keyExpansions, 16);
+		return oddRound(roundIn, keyExpansions, 96);
 	}
 	
 	private byte[] evenRound(byte[] data, byte[] keyExpansions, int keyIndex) {
@@ -88,12 +105,12 @@ public class IDEABlockCipher implements IBlockCipher {
 		int Yout = mult(add(mult(Ke,Yin),Zin),Kf);
 		int Zout = add(mult(Ke,Yin),Yout);
 		
-		short Oa, Ob, Oc, Od;
+		int Oa, Ob, Oc, Od;
 		
-		Oa = (short)(Xa ^ Yout);
-		Ob = (short)(Xb ^ Yout);
-		Oc = (short)(Xc ^ Zout);
-		Od = (short)(Xd ^ Zout);
+		Oa = Xa ^ Yout;
+		Ob = Xb ^ Yout;
+		Oc = Xc ^ Zout;
+		Od = Xd ^ Zout;
 		
 		byte[] ret = new byte[8];
 		
@@ -123,11 +140,11 @@ public class IDEABlockCipher implements IBlockCipher {
 		int Kc = bytesToInt(keyExpansions[keyIndex + 4], keyExpansions[keyIndex + 5]);
 		int Kd = bytesToInt(keyExpansions[keyIndex + 6], keyExpansions[keyIndex + 7]);
 		
-		short Oa, Ob, Oc, Od;
-		Oa = (short)mult(Xa, Ka);
-		Ob = (short)add(Xc, Kc);
-		Oc = (short)add(Xb, Kb);
-		Od = (short)mult(Xd, Kd);
+		int Oa, Ob, Oc, Od;
+		Oa = mult(Xa, Ka);
+		Ob = add(Xc, Kc);
+		Oc = add(Xb, Kb);
+		Od = mult(Xd, Kd);
 		
 		byte[] ret = new byte[8];
 		
@@ -143,36 +160,39 @@ public class IDEABlockCipher implements IBlockCipher {
 		return ret;
 	}
 	
-	private int mult(int first, int second) {
-		return (first * second) % 65537;
+	private int mult(long first, long second) {
+		return (int)((first * second) % 65537);
 	}
 	
 	private int add(int first, int second) {
 		return (first + second) % 65536;
 	}
 	
+
 	private int bytesToInt(byte first, byte second) {
-		ByteBuffer bb = ByteBuffer.allocate(4);
-		bb.put((byte)0);
-		bb.put((byte)0);
-		bb.put(first);
-		bb.put(second);
-		
-		return bb.getInt();
+		int ret = 0;
+		ret += ((0x000000FF & first) << 8);
+		ret += (int)(0x000000FF & second);
+		return ret;
 	}
 	
-	private int multInverse(int bytesToInt) {
-		int a = 65537;
-		int b = bytesToInt;
-		int rem = a % b;
+	private int multInverse(int x) {
+		int t0, t1, q, y;
 		
-		while (rem > 0) {
-			a = b;
-			b = rem;
-			rem = a % b;
+		if (x < 2) return x;
+		t0 = 0;
+		t1 = 65537 / x;
+		y = 65537 % x;
+		while (y != 1) {
+			q = x / y;
+			x %= y;
+			t0 += (t1 * q);
+			if (x==1) return t0;
+			q = y / x;
+			y %= x;
+			t1 += (t0 * q);
 		}
-		
-		return b;
+		return 65537-x;
 	}
 
 }
