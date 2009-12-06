@@ -6,14 +6,14 @@ public class CFBStreamCipher implements IStreamCipher {
 	private IBlockCipher cipher = null;
 	
 	public CFBStreamCipher(IBlockCipher cipher) {
-		if ((this.cipher.blockSize() % 8) != 0) {
+		if ((cipher.blockSize() % 8) != 0) {
 			throw new IllegalArgumentException("Cipher block size in bits must be a multiple of 8");
 		}
 		this.cipher = cipher;
 	}
 
 	@Override
-	public String decrypt(byte[] cipherText, byte[] IV) {
+	public String decrypt(final byte[] cipherText, final byte[] IV) {
 		if (IV.length * 8 != cipher.blockSize()) {
 			throw new IllegalArgumentException(String.format("IV size in bits must be a multiple of %d.", cipher.blockSize()));
 		}
@@ -26,14 +26,14 @@ public class CFBStreamCipher implements IStreamCipher {
 		
 		byte[] plain = new byte[cipherText.length];
 		
-		byte[] input = IV;
+		byte[] input = IV.clone();
 		for (int i = 0; i < numOfBlocks; i++) {
-			byte[] output = cipher.decrypt(input);
-			for (int j = 0; j < cipher.blockSize(); j++) {
-				int index = (i*cipher.blockSize()) + j;
+			byte[] output = cipher.encrypt(input);
+			for (int j = 0; j < cipher.blockSize() / 8; j++) {
+				int index = (i*cipher.blockSize() / 8) + j;
 				if (index < cipherText.length) {
 					plain[index] = (byte)(output[j] ^ cipherText[index]);
-					input[index] = cipherText[index];
+					input[j] = cipherText[index];
 				}
 			}
 		}
@@ -42,7 +42,7 @@ public class CFBStreamCipher implements IStreamCipher {
 	}
 
 	@Override
-	public byte[] encrypt(String plain, byte[] IV) {
+	public byte[] encrypt(final String plain, final byte[] IV) {
 		if (IV.length * 8 != cipher.blockSize()) {
 			throw new IllegalArgumentException(String.format("IV size in bits must be a multiple of %d.", cipher.blockSize()));
 		}
@@ -57,14 +57,14 @@ public class CFBStreamCipher implements IStreamCipher {
 
 		byte[] cipherText = new byte[plainText.length];
 
-		byte[] input = IV;
+		byte[] input = IV.clone();
 		for (int i = 0; i < numOfBlocks; i++) {
 			byte[] output = cipher.encrypt(input);
-			for (int j = 0; j < cipher.blockSize(); j++) {
-				int index = (i*cipher.blockSize()) + j;
+			for (int j = 0; j < cipher.blockSize() / 8; j++) {
+				int index = (i*cipher.blockSize() / 8) + j;
 				if (index < plainText.length) {
 					byte b = (byte)(output[j] ^ plainText[index]);
-					input[index] = b;
+					input[j] = b;
 					cipherText[index] = b;
 				}
 			}
