@@ -36,8 +36,6 @@ public class MainChatFrame extends AbstractFrame
 	private JTextArea conversationArea, messageArea;
 	private JLabel statusLabel;
 	
-	private boolean justSentMessage = false;
-	
 	public MainChatFrame(final GTSecureChat program) {
 		super(program);
 		setTitle(FRAME_TITLE);
@@ -128,15 +126,13 @@ public class MainChatFrame extends AbstractFrame
 				// TODO handle network problems
 				e1.printStackTrace();
 			}
-			justSentMessage = true;
 		}
 	}
 
 	@Override
 	public void keyReleased(final KeyEvent e) {
-		if (e.getKeyCode() == KeyEvent.VK_ENTER && justSentMessage) {
+		if (e.getKeyCode() == KeyEvent.VK_ENTER) {
 			messageArea.setText(new String());
-			justSentMessage = false;
 		}
 	}
 

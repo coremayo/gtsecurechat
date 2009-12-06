@@ -13,16 +13,34 @@ import edu.gatech.cc.CS4237.gtsecurechat.IStreamCipher;
  *
  */
 public class CryptoOutputStream extends PrintWriter {
+
+	/**
+	 * This string will be prefixed to plain text messages before being 
+	 * encrypted and removed after decryption. It is a way to tell if decryption
+	 * failed.
+	 */
+	String code = "Hello";
 	
+	/**
+	 * Instance of a stream cipher that will encrypt and decrypt all traffic.
+	 */
 	IStreamCipher crypto;
+	
+	/**
+	 * Random number generator used to generate IV's.
+	 */
 	SecureRandom rand;
+	
+	/**
+	 * Encrypted output streasm.
+	 */
 	OutputStream out;
 	
 	/**
 	 * Creates a new instance that will encrypt all messages that are sent using
 	 * the println method and will send to the supplied output stream.
 	 * @param out Stream which encrypted traffic will be sent over
-	 * @param key Encryption key.
+	 * @param crypto Instance of stream cipher class
 	 */
 	public CryptoOutputStream(OutputStream out, IStreamCipher crypto) {
 		super(out, true);
@@ -44,7 +62,10 @@ public class CryptoOutputStream extends PrintWriter {
 	public void println(String plain) {
 		byte[] IV = new byte[8];
 		rand.nextBytes(IV);
-		byte[] cipher = crypto.encrypt(plain, IV);
+		
+		// When encrypting, I prefix plain text with a known value. This way, 
+		// when decrypting, I can tell if it fails.
+		byte[] cipher = crypto.encrypt(code + plain, IV);
 		byte[] len = Handshake.intToByteArray(cipher.length);
 		
 		try {
