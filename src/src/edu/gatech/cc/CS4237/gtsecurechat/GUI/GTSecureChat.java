@@ -6,7 +6,8 @@ import java.net.Socket;
 
 import javax.swing.JFrame;
 
-import edu.gatech.cc.CS4237.gtsecurechat.DummyEncryption;
+import edu.gatech.cc.CS4237.gtsecurechat.CFBStreamCipher;
+import edu.gatech.cc.CS4237.gtsecurechat.IDEABlockCipher;
 import edu.gatech.cc.CS4237.gtsecurechat.IStreamCipher;
 import edu.gatech.cc.CS4237.gtsecurechat.InvalidPasswordException;
 import edu.gatech.cc.CS4237.gtsecurechat.network.CryptoInputStream;
@@ -154,7 +155,7 @@ public class GTSecureChat {
 		handshake.destroy();
 		
 		//TODO when IDEA is ready, insert actual encryption here
-		crypto = new DummyEncryption();
+		crypto = new CFBStreamCipher(new IDEABlockCipher());
 		crypto.initialize(key);
 		
 		out = new CryptoOutputStream(sock.getOutputStream(), crypto);
