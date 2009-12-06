@@ -24,6 +24,27 @@ public class Handshake {
 	private String alice, bob;
 	
 	/**
+	 * Length of the exponent in bytes. Since java is weird about signed ints, 
+	 * we have to use an extra byte to account for the sign bit.
+	 */
+	private final int pLen = 129;
+	
+	/**
+	 * Number of bytes returned by H1 and H2 functions.
+	 */
+	private final int h12Len = 144;
+	
+	/**
+	 * Number of bytes returned by H3, H4, and H5 hash functions.
+	 */
+	private final int h345Len = 16;
+	
+	/**
+	 * Number of bytes in each message of the handshake.
+	 */
+	private int m1Len, m2Len = pLen + h345Len, m3Len = 16;
+	
+	/**
 	 * Secret shared between Alice and Bob used to negotiate a session key.
 	 */
 	private char[] pass;
@@ -89,6 +110,7 @@ public class Handshake {
 		this.alice = alice;
 		this.bob = bob;
 		this.pass = pass;
+		this.m1Len = alice.length() + pLen;
 		
 		// generate a sufficiently large prime for the exponent
 		rand = BigInteger.probablePrime(384, new SecureRandom());
@@ -141,7 +163,7 @@ public class Handshake {
 		tempInt = new BigInteger(tempBytes);
 		
 		// return (A|H1(z)*(g^Ra))
-		retBytes = new byte[alice.length() + 129];
+		retBytes = new byte[m1Len];
 		
 		for (i = 0; i < alice.length(); i++) {
 			retBytes[i] = (byte)alice.charAt(i);
@@ -149,7 +171,7 @@ public class Handshake {
 		
 		// X = H1(z)*(g^Ra) will be 1024 bits or 128 Bytes
 		X = (tempInt.multiply(expG_Ra)).mod(p);
-		tempBytes = bigIntToByteArray(X, 129);
+		tempBytes = bigIntToByteArray(X, pLen);
 		for (byte b : tempBytes) {
 			retBytes[i] = b;
 			i++;
@@ -182,12 +204,12 @@ public class Handshake {
 		expG_Rb = g.modPow(rand, p);
 		
 		// check to make sure the message is the right length
-		if (message.length != alice.length() + 129) {
+		if (message.length != m1Len) {
 			throw new HandshakeException("Received invalid handshake");
 		}
 		
 		// extract Q from the message, Q should equal X
-		tempBytes = new byte[129];
+		tempBytes = new byte[pLen];
 		for (i = 0; i < tempBytes.length; i++) {
 			tempBytes[i] = message[i + alice.length()];
 		}
@@ -213,9 +235,9 @@ public class Handshake {
 		z2 = new byte[alice.length() + // number of chars in alice
 		                     bob.length() +   // number of chars in bob
 		                     pass.length +    // number of chars in password
-		                     129 +  // number of bytes in Xab, always 128
-		                     129 +  // number of bytes in g^Rb mod p
-		                     129];  // number of bytes in (Xab)^Rb mod p
+		                     pLen +  // number of bytes in Xab, always 128
+		                     pLen +  // number of bytes in g^Rb mod p
+		                     pLen];  // number of bytes in (Xab)^Rb mod p
 		i = 0;
 		// A
 		for (byte b : alice.getBytes()) {
@@ -233,26 +255,26 @@ public class Handshake {
 			i++;
 		}
 		// Xab 128 bytes
-		for (byte b : bigIntToByteArray(expG_Ra, 129)) {
+		for (byte b : bigIntToByteArray(expG_Ra, pLen)) {
 			z2[i] = b;
 			i++;
 		}
 		// g^Rb 128 bytes
-		for (byte b : bigIntToByteArray(expG_Rb, 129)) {
+		for (byte b : bigIntToByteArray(expG_Rb, pLen)) {
 			z2[i] = b;
 			i++;
 		}
 		// (Xab)^Rb 128 bytes
-		for (byte b : bigIntToByteArray(expG_Ra.modPow(rand, p), 129)) {
+		for (byte b : bigIntToByteArray(expG_Ra.modPow(rand, p), pLen)) {
 			z2[i] = b;
 			i++;
 		}
 		S1 = H3(z2);
 		
 		// B --> A: {Y, S1} (Y = 1024bits + S1 = 128bits) = 1152bits or 144Bytes
-		retBytes = new byte[129 + S1.length];
+		retBytes = new byte[m2Len];
 		i = 0;
-		for (byte b : bigIntToByteArray(Y, 129)) {
+		for (byte b : bigIntToByteArray(Y, pLen)) {
 			retBytes[i] = b;
 			i++;
 		}
@@ -287,7 +309,7 @@ public class Handshake {
 		BigInteger Y;
 		
 		// Y will be the first 1024 bits, or 128 bytes
-		tempBytes = new byte[129];
+		tempBytes = new byte[pLen];
 		i = 0;
 		for (int j = 0; j < tempBytes.length; j++) {
 			tempBytes[j] = message[i];
@@ -316,9 +338,9 @@ public class Handshake {
 		z2 = new byte[alice.length() + // number of chars in Alice
 		                     bob.length() +   // number of chars in Bob
 		                     pass.length +    // number of chars in password
-		                     129 +  // number of bytes in g^Ra mod p, always 128
-		                     129 +  // number of bytes in Yba
-		                     129];  // number of bytes in (Yba)^Ra mod p
+		                     pLen +  // number of bytes in g^Ra mod p, always 128
+		                     pLen +  // number of bytes in Yba
+		                     pLen];  // number of bytes in (Yba)^Ra mod p
 		i = 0;
 		// A
 		for (byte b : alice.getBytes()) {
@@ -336,17 +358,17 @@ public class Handshake {
 			i++;
 		}
 		// g^Ra 128 bytes
-		for (byte b : bigIntToByteArray(expG_Ra, 129)) {
+		for (byte b : bigIntToByteArray(expG_Ra, pLen)) {
 			z2[i] = b;
 			i++;
 		}
 		// Yba 128 bytes
-		for (byte b : bigIntToByteArray(expG_Rb, 129)) {
+		for (byte b : bigIntToByteArray(expG_Rb, pLen)) {
 			z2[i] = b;
 			i++;
 		}
 		// (Yba)^Ra 128 bytes
-		for (byte b : bigIntToByteArray(expG_Rb.modPow(rand, p), 129)) {
+		for (byte b : bigIntToByteArray(expG_Rb.modPow(rand, p), pLen)) {
 			z2[i] = b;
 			i++;
 		}
@@ -362,7 +384,6 @@ public class Handshake {
 		
 		// - A --> B:  S2 = H4(A|B|PW|g^Ra|Yba|(Yba)^Ra)
 		S2 = H4(z2);
-//		retBytes = bigIntToByteArray(S2, 16);
 		return S2;
 	}
 	
@@ -467,7 +488,7 @@ public class Handshake {
 		}
 		
 		// we will be returning a 1152-bit value, or 144 Bytes
-		retBytes = new byte[144];
+		retBytes = new byte[h12Len];
 		
 		// we are taking the hash of (32-bit int|32-bit int|z)
 		u = new byte[z1.length + 8];
@@ -563,6 +584,29 @@ public class Handshake {
 		return retBytes;
 	}
 	
+	/**
+	 * Gets the length of the first message of the handshake.
+	 * @return length of the message in bytes
+	 */
+	public int getM1Length() {
+		return m1Len;
+	}
+	
+	/**
+	 * Gets the length of the second message of the handshake.
+	 * @return length of the message in bytes
+	 */
+	public int getM2Length() {
+		return m2Len;
+	}
+	
+	/**
+	 * Gets the length of the third and final message of the handshake.
+	 * @return length of the message in bytes
+	 */
+	public int getM3Length() {
+		return m3Len;
+	}
 	
 	/**
 	 * Read somewhere in Java documentation that when working with passwords, 
