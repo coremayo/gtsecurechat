@@ -26,11 +26,6 @@ public class HandshakeTest {
 		keyAlice = alice.getKey();
 		keyBob = bob.getKey();
 		
-		System.out.println("Alice got key 0x" + 
-				Handshake.byteArrayToHexString(keyAlice));
-		System.out.println("  Bob got key 0x" + 
-				Handshake.byteArrayToHexString(keyBob));
-		
 		assertEquals(keyAlice.length, 16);
 		assertEquals(keyBob.length, 16);
 		assertArrayEquals(keyAlice, keyBob);
