@@ -9,7 +9,6 @@ import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
-import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -41,7 +40,7 @@ public class CreateChatFrame
 			public void windowClosing(WindowEvent e) {
 				setVisible(false);
 				errorLabel.setVisible(false);
-				program.setActiveWindow(program.WELCOME_WINDOW);
+				program.WELCOME_WINDOW.setVisible(true);
 			}
 		});
 		
@@ -50,12 +49,6 @@ public class CreateChatFrame
 		GridBagConstraints c = new GridBagConstraints();
 		add(panel);
 		
-		//TODO make some snazzy borders
-		panel.setBorder(
-                BorderFactory.createCompoundBorder(
-                        BorderFactory.createTitledBorder("Text Fields"),
-                        BorderFactory.createEmptyBorder(5,5,5,5)));
-
 		nameLabel = new JLabel("Name");
 		c.fill = GridBagConstraints.NONE;
 		c.anchor = GridBagConstraints.NORTHWEST;
@@ -122,6 +115,7 @@ public class CreateChatFrame
 		c.gridwidth = 1;
 		c.insets = new Insets(5, 5, 5, 5);
 		panel.add(okayButton, c);
+		getRootPane().setDefaultButton(okayButton);
 		
 		errorLabel = new JLabel("this is an error");
 		errorLabel.setVisible(false);
@@ -140,7 +134,7 @@ public class CreateChatFrame
 		// User clicked Cancel
 			setVisible(false);
 			errorLabel.setVisible(false);
-			program.setActiveWindow(program.WELCOME_WINDOW);
+			program.WELCOME_WINDOW.setVisible(true);
 			
 		} else if (e.getSource() == okayButton) {
 		// User clicked OK
@@ -149,7 +143,7 @@ public class CreateChatFrame
 						              Integer.parseInt(portField.getText()), 
 						              passField.getPassword());
 				setVisible(false);
-				program.setActiveWindow(program.CHAT_WINDOW);
+				program.CHAT_WINDOW.setVisible(true);
 			} catch (Exception ex) {
 				errorLabel.setVisible(true);
 				errorLabel.setText(ex.getMessage());

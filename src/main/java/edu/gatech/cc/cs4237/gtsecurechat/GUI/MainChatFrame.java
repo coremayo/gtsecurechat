@@ -40,7 +40,6 @@ public class MainChatFrame extends AbstractFrame
 	public MainChatFrame(final GTSecureChat program) {
 		super(program);
 		setTitle(FRAME_TITLE);
-//		setSize(FRAME_WIDTH, FRAME_HEIGHT);
 		setResizable(false);
 		addWindowListener(this);
 		Container pane = getContentPane();
@@ -55,6 +54,9 @@ public class MainChatFrame extends AbstractFrame
 		menuItem = new JMenuItem("Exit", KeyEvent.VK_X);
 		menuItem.setAccelerator(
 				KeyStroke.getKeyStroke(KeyEvent.VK_Q, ActionEvent.CTRL_MASK));
+		menuItem.addActionListener(this);
+		fileMenu.add(menuItem);
+		menuItem = new JMenuItem("Close", KeyEvent.VK_C);
 		menuItem.addActionListener(this);
 		fileMenu.add(menuItem);
 		menuBar.add(fileMenu);
@@ -89,7 +91,7 @@ public class MainChatFrame extends AbstractFrame
 				JSplitPane.VERTICAL_SPLIT, 
 				conversationScrollPane, 
 				messageScrollPane);
-		splitPane.setDividerLocation(300);
+		splitPane.setDividerLocation(275);
 		pane.add(BorderLayout.CENTER, splitPane);
 		
 		statusLabel = new JLabel("HELLO");
@@ -127,7 +129,6 @@ public class MainChatFrame extends AbstractFrame
 			try {
 				program.sendMessage(messageArea.getText());
 			} catch (IOException e1) {
-				// TODO handle network problems
 				e1.printStackTrace();
 			}
 		}
@@ -149,6 +150,10 @@ public class MainChatFrame extends AbstractFrame
 			JMenuItem source = (JMenuItem)e.getSource();
 			if (source.getText().equals("Exit")) {
 				exitProgram();
+			} else if (source.getText().equals("Close")) {
+				this.setVisible(false);
+				program.WELCOME_WINDOW.setVisible(true);
+				program.endChat();
 			}
 		}
 	}

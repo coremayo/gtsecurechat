@@ -42,6 +42,7 @@ public class WelcomeFrame
 		c.gridy = 1;
 		c.insets = new Insets(0, 0, 0, 10);
 		panel.add(newChatButton, c);
+		getRootPane().setDefaultButton(newChatButton);
 		
 		joinChatButton = new JButton("Join Chat");
 		joinChatButton.addActionListener(this);
@@ -55,10 +56,10 @@ public class WelcomeFrame
 	public void actionPerformed(ActionEvent e) {
 		if (e.getSource() == newChatButton) {
 			setVisible(false);
-			program.setActiveWindow(program.CREATE_WINDOW);
+			program.CREATE_WINDOW.setVisible(true);
 		} else if (e.getSource() == joinChatButton) {
 			setVisible(false);
-			program.setActiveWindow(program.CONNECT_WINDOW);
+			program.CONNECT_WINDOW.setVisible(true);
 		}
 	}
 }
