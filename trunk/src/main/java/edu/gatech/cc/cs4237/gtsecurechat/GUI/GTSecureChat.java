@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-import javax.swing.JFrame;
-
 import edu.gatech.cc.cs4237.gtsecurechat.CFBStreamCipher;
 import edu.gatech.cc.cs4237.gtsecurechat.IDEABlockCipher;
 import edu.gatech.cc.cs4237.gtsecurechat.IStreamCipher;
@@ -30,7 +28,7 @@ public class GTSecureChat {
 	/**
 	 * Number of bytes in an initialization vector.
 	 */
-	protected final int IV_SIZE = 8; //TODO move this to IStreamCipher interface
+	protected final int IV_SIZE = 8;
 	
 	/**
 	 * Identities of Alice and Bob.
@@ -52,13 +50,7 @@ public class GTSecureChat {
 		CREATE_WINDOW = new CreateChatFrame(this);
 		CHAT_WINDOW = new MainChatFrame(this);
 		WELCOME_WINDOW = new WelcomeFrame(this);
-		
-		setActiveWindow(WELCOME_WINDOW);
-	}
-	
-	// Makes a window visible
-	protected void setActiveWindow(JFrame window) {
-		window.setVisible(true);
+		WELCOME_WINDOW.setVisible(true);
 	}
 	
 	/**
@@ -154,7 +146,6 @@ public class GTSecureChat {
 		byte[] key = handshake.getKey();
 		handshake.destroy();
 		
-		//TODO when IDEA is ready, insert actual encryption here
 		crypto = new CFBStreamCipher(new IDEABlockCipher());
 		crypto.initialize(key);
 		
@@ -176,6 +167,18 @@ public class GTSecureChat {
 			out.println(plain);
 			CHAT_WINDOW.receiveMessage(plain);
 		}
+	}
+	
+	protected void endChat() {
+		try {
+			sock.close();
+		} catch (IOException e) {
+//			e.printStackTrace();
+		}
+		out = null;
+		in = null;
+		CHAT_WINDOW.setVisible(false);
+		WELCOME_WINDOW.setVisible(true);
 	}
 
 	/**
@@ -202,8 +205,7 @@ public class GTSecureChat {
 			}
 			
 			// When the TCP connection closes, then exit
-			// TODO do we want to prompt for a new chat instance?
-			System.exit(0);
+			endChat();
 		}
 	}
 	
@@ -290,7 +292,6 @@ public class GTSecureChat {
 			// Some network issues occurred.
 			} catch (IOException e) {
 				e.printStackTrace();
-				//TODO come up with what to do if network stuff fails
 			}
 		}
 	}

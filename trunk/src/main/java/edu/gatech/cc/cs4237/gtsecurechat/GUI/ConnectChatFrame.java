@@ -42,7 +42,7 @@ public class ConnectChatFrame
 			public void windowClosing(WindowEvent e) {
 				setVisible(false);
 				errorLabel.setVisible(false);
-				program.setActiveWindow(program.WELCOME_WINDOW);
+				program.WELCOME_WINDOW.setVisible(true);
 			}
 		});
 
@@ -50,7 +50,6 @@ public class ConnectChatFrame
 		panel.setLayout(new GridBagLayout());
 		GridBagConstraints c = new GridBagConstraints();
 		add(panel);
-		//TODO make some snazzy borders... panel.setBorder(...
 		
 		nameLabel = new JLabel("Name");
 		c.fill = GridBagConstraints.NONE;
@@ -135,6 +134,7 @@ public class ConnectChatFrame
 		c.gridwidth = 1;
 		c.insets = new Insets(5, 5, 5, 5);
 		panel.add(okayButton, c);
+		getRootPane().setDefaultButton(okayButton);
 		
 		errorLabel = new JLabel("this is an error");
 		errorLabel.setVisible(false);
@@ -154,7 +154,7 @@ public class ConnectChatFrame
 		// User clicked Cancel
 			setVisible(false);
 			errorLabel.setVisible(false);
-			program.setActiveWindow(program.WELCOME_WINDOW);
+			program.WELCOME_WINDOW.setVisible(true);
 			
 		} else if (e.getSource() == okayButton) {
 		// User clicked OK
@@ -164,7 +164,7 @@ public class ConnectChatFrame
 						         Integer.parseInt(portField.getText()),
 						         passField.getPassword());
 				setVisible(false);
-				program.setActiveWindow(program.CHAT_WINDOW);
+				program.CHAT_WINDOW.setVisible(true);
 			} catch (InvalidPasswordException ex) {
 				errorLabel.setVisible(true);
 				errorLabel.setText(ex.getMessage());

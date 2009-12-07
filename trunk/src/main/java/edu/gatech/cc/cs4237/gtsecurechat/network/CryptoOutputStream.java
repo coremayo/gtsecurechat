@@ -15,11 +15,11 @@ import edu.gatech.cc.cs4237.gtsecurechat.IStreamCipher;
 public class CryptoOutputStream extends PrintWriter {
 
 	/**
-	 * This string will be prefixed to plain text messages before being 
+	 * This string will be suffixed to plain text messages before being 
 	 * encrypted and removed after decryption. It is a way to tell if decryption
 	 * failed.
 	 */
-	String code = "Hello";
+	String suffix = "Hello";
 	
 	/**
 	 * Instance of a stream cipher that will encrypt and decrypt all traffic.
@@ -65,7 +65,7 @@ public class CryptoOutputStream extends PrintWriter {
 		
 		// When encrypting, I prefix plain text with a known value. This way, 
 		// when decrypting, I can tell if it fails.
-		byte[] cipher = crypto.encrypt(code + plain, IV);
+		byte[] cipher = crypto.encrypt(plain + suffix, IV);
 		byte[] len = Handshake.intToByteArray(cipher.length);
 		
 		try {
@@ -73,7 +73,6 @@ public class CryptoOutputStream extends PrintWriter {
 			out.write(IV);
 			out.write(cipher);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}

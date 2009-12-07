@@ -13,13 +13,13 @@ import edu.gatech.cc.cs4237.gtsecurechat.IStreamCipher;
  *
  */
 public class CryptoInputStream extends BufferedReader {
-	
+
 	/**
-	 * This string will be prefixed to plain text messages before being 
+	 * This string will be suffixed to plain text messages before being 
 	 * encrypted and removed after decryption. It is a way to tell if decryption
 	 * failed.
 	 */
-	String code = "Hello";
+	String suffix = "Hello";
 	
 	/**
 	 * Instance of a stream cipher that will encrypt and decrypt all traffic.
@@ -73,10 +73,11 @@ public class CryptoInputStream extends BufferedReader {
 			}
 			String plain = crypto.decrypt(cipher, IV);
 			
-			// Check that our prefix came out correctly.
-			if (plain.substring(0, code.length()).equals(code)) {
+			// Check that our suffix came out correctly.
+			if (plain.substring(plain.length() - suffix.length(), 
+					plain.length()).equals(suffix)) {
 				return plain.substring(
-						code.length(), plain.length());
+						0, plain.length() - suffix.length());
 			} else {
 				throw new Exception("Decryption Failed!");
 			}
