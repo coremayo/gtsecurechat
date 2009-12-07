@@ -1,8 +1,11 @@
-package edu.gatech.cc.CS4237.gtsecurechat.network;
+package edu.gatech.cc.CS4237.gtsecurechat.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
+
+import edu.gatech.cc.CS4237.gtsecurechat.network.Handshake;
 
 public class HandshakeTest {
 

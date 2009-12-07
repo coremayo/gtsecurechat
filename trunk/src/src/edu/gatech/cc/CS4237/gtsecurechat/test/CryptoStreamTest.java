@@ -1,4 +1,4 @@
-package edu.gatech.cc.CS4237.gtsecurechat.network;
+package edu.gatech.cc.CS4237.gtsecurechat.test;
 
 import static org.junit.Assert.assertEquals;
 
@@ -9,6 +9,8 @@ import org.junit.Test;
 
 import edu.gatech.cc.CS4237.gtsecurechat.DummyEncryption;
 import edu.gatech.cc.CS4237.gtsecurechat.IStreamCipher;
+import edu.gatech.cc.CS4237.gtsecurechat.network.CryptoInputStream;
+import edu.gatech.cc.CS4237.gtsecurechat.network.CryptoOutputStream;
 
 public class CryptoStreamTest {
 
