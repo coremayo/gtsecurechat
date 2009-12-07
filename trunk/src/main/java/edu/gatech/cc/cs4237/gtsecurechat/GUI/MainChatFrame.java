@@ -2,6 +2,7 @@ package edu.gatech.cc.cs4237.gtsecurechat.GUI;
 
 import java.awt.BorderLayout;
 import java.awt.Container;
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -39,7 +40,7 @@ public class MainChatFrame extends AbstractFrame
 	public MainChatFrame(final GTSecureChat program) {
 		super(program);
 		setTitle(FRAME_TITLE);
-		setSize(FRAME_WIDTH, FRAME_HEIGHT);
+//		setSize(FRAME_WIDTH, FRAME_HEIGHT);
 		setResizable(false);
 		addWindowListener(this);
 		Container pane = getContentPane();
@@ -76,22 +77,25 @@ public class MainChatFrame extends AbstractFrame
 		messageArea.setLineWrap(true);
 		messageArea.setWrapStyleWord(true);
 		
-		JScrollPane conversationScrollPane, newMessageScrollPane;
+		JScrollPane conversationScrollPane, messageScrollPane;
 		conversationScrollPane = new JScrollPane(conversationArea);
 		conversationScrollPane.setVerticalScrollBarPolicy(
 				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-		newMessageScrollPane = new JScrollPane(messageArea);
+		conversationScrollPane.setMinimumSize(new Dimension(FRAME_WIDTH, 150));
+		messageScrollPane = new JScrollPane(messageArea);
+		messageScrollPane.setMinimumSize(new Dimension(FRAME_WIDTH, 30));
 		
 		JSplitPane splitPane = new JSplitPane(
 				JSplitPane.VERTICAL_SPLIT, 
 				conversationScrollPane, 
-				newMessageScrollPane);
-		splitPane.setDividerLocation(0.75);
+				messageScrollPane);
+		splitPane.setDividerLocation(300);
 		pane.add(BorderLayout.CENTER, splitPane);
 		
 		statusLabel = new JLabel("HELLO");
 		statusLabel.setVisible(false);
 		pane.add(BorderLayout.SOUTH, statusLabel);
+		pack();
 	}
 	
 	protected void receiveMessage(final String message) {
